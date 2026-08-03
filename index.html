@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED iOS</title>
+  <title>Télécommande LED iOS - Permanent</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -29,14 +29,14 @@
   <h2>💡 Télécommande LED Directe</h2>
 
   <div class="card">
-    <h3>🎯 Sélectionnez le Ruban à contrôler</h3>
+    <h3>🎯 Sélectionnez la Zone</h3>
     <div class="row">
-      <button id="zone-chambre" class="btn btn-zone" onclick="connectZone('chambre')">🛏️ Chambre</button>
-      <button id="zone-bureau" class="btn btn-zone" onclick="connectZone('bureau')">🖥️ Bureau</button>
-      <button id="zone-meuble" class="btn btn-zone" onclick="connectZone('meuble')">🛋️ Meuble</button>
-      <button id="zone-all" class="btn btn-zone" onclick="connectZone('all')">🌐 TOUT</button>
+      <button id="zone-chambre" class="btn btn-zone" onclick="selectZone('chambre')">🛏️ Chambre</button>
+      <button id="zone-bureau" class="btn btn-zone" onclick="selectZone('bureau')">🖥️ Bureau</button>
+      <button id="zone-meuble" class="btn btn-zone" onclick="selectZone('meuble')">🛋️ Meuble</button>
+      <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">🌐 TOUT</button>
     </div>
-    <div id="status">Aucun ruban sélectionné</div>
+    <div id="status">Sélectionnez une zone</div>
   </div>
 
   <div class="card">
@@ -91,39 +91,26 @@
 
   <script>
     let savedDevices = { chambre: null, bureau: null, meuble: null };
-    let activeChar = null;
-    let activeServer = null;
-    let currentMode = null;
+    let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
+    let currentZone = null;
     const status = document.getElementById('status');
 
-    async function getCharacteristic(device) {
-      if (!device.gatt.connected) {
-        activeServer = await device.gatt.connect();
-      }
-      const services = await activeServer.getPrimaryServices();
-      for (const service of services) {
-        try {
-          const characteristics = await service.getCharacteristics();
-          for (const c of characteristics) {
-            if (c.properties.write || c.properties.writeWithoutResponse) return c;
-          }
-        } catch(e) {}
-      }
-      return null;
-    }
-
-    async function connectZone(zone) {
+    // Connexion et maintien du lien actif
+    async function selectZone(zone) {
       document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
       document.getElementById(`zone-${zone}`).classList.add('active');
-      currentMode = zone;
-
-      if (activeServer && activeServer.connected) {
-        await activeServer.disconnect();
-      }
+      currentZone = zone;
 
       if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT sélectionné";
+        status.innerText = "🌐 Mode TOUT (Séquentiel)";
         status.style.color = "#ff9f1c";
+        return;
+      }
+
+      // Si le ruban est déjà connecté et valide, on ne déconnecte pas !
+      if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
+        status.innerText = `✅ Connecté à ${zone.toUpperCase()} (Maintien actif)`;
+        status.style.color = "#34c759";
         return;
       }
 
@@ -139,16 +126,30 @@
             ]
           });
         }
-        
+
         status.innerText = `🔗 Connexion à ${zone.toUpperCase()}...`;
-        activeChar = await getCharacteristic(savedDevices[zone]);
-        
-        if (activeChar) {
-          status.innerText = `✅ Connecté à ${zone.toUpperCase()}`;
+        const server = await savedDevices[zone].gatt.connect();
+        const services = await server.getPrimaryServices();
+
+        for (const service of services) {
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const c of characteristics) {
+              if (c.properties.write || c.properties.writeWithoutResponse) {
+                savedCharacteristics[zone] = c;
+                break;
+              }
+            }
+          } catch(e) {}
+          if (savedCharacteristics[zone]) break;
+        }
+
+        if (savedCharacteristics[zone]) {
+          status.innerText = `✅ Connecté à ${zone.toUpperCase()} (Verrouillé)`;
           status.style.color = "#34c759";
         }
       } catch (e) {
-        status.innerText = "❌ Connexion annulée";
+        status.innerText = "❌ Connexion échouée";
         status.style.color = "#e71d36";
       }
     }
@@ -162,29 +163,35 @@
     }
 
     async function sendToCurrent(bytes) {
-      if (!currentMode) {
-        alert("Sélectionnez d'abord une zone (Chambre, Bureau, Meuble ou TOUT) !");
+      if (!currentZone) {
+        alert("Sélectionnez d'abord une zone !");
         return;
       }
 
-      if (currentMode === 'all') {
+      if (currentZone === 'all') {
         status.innerText = "⏳ Envoi à tous les rubans...";
         for (const zone of ['chambre', 'bureau', 'meuble']) {
           if (savedDevices[zone]) {
             try {
-              const char = await getCharacteristic(savedDevices[zone]);
-              if (char) await writeData(char, bytes);
-              await savedDevices[zone].gatt.disconnect();
+              if (!savedDevices[zone].gatt.connected) {
+                await selectZone(zone);
+              }
+              if (savedCharacteristics[zone]) {
+                await writeData(savedCharacteristics[zone], bytes);
+              }
             } catch(e) {}
           }
         }
-        status.innerText = "✅ Transmis à tous les rubans configurés";
+        status.innerText = "✅ Commande envoyée à TOUT";
       } else {
-        if (activeChar && savedDevices[currentMode] && savedDevices[currentMode].gatt.connected) {
-          await writeData(activeChar, bytes);
+        // Envoi instantané sur la connexion conservée
+        if (savedCharacteristics[currentZone] && savedDevices[currentZone].gatt.connected) {
+          await writeData(savedCharacteristics[currentZone], bytes);
         } else {
-          await connectZone(currentMode);
-          if (activeChar) await writeData(activeChar, bytes);
+          await selectZone(currentZone);
+          if (savedCharacteristics[currentZone]) {
+            await writeData(savedCharacteristics[currentZone], bytes);
+          }
         }
       }
     }
