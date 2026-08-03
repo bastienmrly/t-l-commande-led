@@ -3,65 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Dual - Correctif KS03</title>
+  <title>Test Isolation Keepsmile (KS03)</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
+    .btn-connect { background-color: #007aff; font-size: 18px; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
-    .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
-    .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
-    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px; font-size: 13px; width: 48%; display: inline-block; margin-bottom: 8px; color: #fff; font-weight: bold; }
-    .btn-zone.active { border-color: #ff9f1c; background-color: #ff9f1c; color: #000; }
-    .btn-forget { background-color: transparent; border: 1px dashed #e71d36; color: #e71d36; font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-top: 8px; display: none; }
-    #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
-    #timer-display { font-size: 18px; color: #ff9f1c; font-weight: bold; margin-top: 10px; }
-    .row { display: flex; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; }
-    h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
+    #status { margin-top: 10px; font-weight: bold; font-size: 15px; color: #ff9f1c; }
+    #logs { background: #000; color: #00ff00; font-family: monospace; font-size: 11px; text-align: left; padding: 10px; border-radius: 8px; height: 120px; overflow-y: auto; margin-top: 15px; }
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
-    .badge { display: block; font-size: 10px; opacity: 0.7; font-weight: normal; margin-top: 2px; }
-    
-    input[type="number"], input[type="time"] {
-      width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
-      font-size: 16px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
-    }
-
-    #night-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.96); display: none; flex-direction: column;
-      justify-content: center; align-items: center; z-index: 9999; color: #444;
-    }
-    #night-overlay h2 { font-size: 20px; color: #333; }
-    #night-overlay p { font-size: 14px; color: #222; margin-top: 10px; }
+    .row { display: flex; justify-content: space-between; }
   </style>
 </head>
 <body>
-  <h2>💡 Contrôle LED Dual (KS03 Fix)</h2>
+
+  <h2>🧪 Test Keepsmile KS03</h2>
 
   <div class="card">
-    <h3>🎯 Sélectionnez la Zone</h3>
-    <div class="row">
-      <button id="zone-chambre" class="btn btn-zone" onclick="selectZone('chambre')">
-        🛏️ Chambre
-        <span class="badge">(KS03 Fixé)</span>
-      </button>
-      <button id="zone-bureau" class="btn btn-zone" onclick="selectZone('bureau')">
-        🖥️ Bureau
-        <span class="badge">(LotusLamp X)</span>
-      </button>
-      <button id="zone-meuble" class="btn btn-zone" onclick="selectZone('meuble')">
-        🛋️ Meuble
-        <span class="badge">(LotusLamp X)</span>
-      </button>
-      <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">
-        🌐 TOUT
-        <span class="badge">(Toutes les zones)</span>
-      </button>
-    </div>
-    <div id="status">Sélectionnez une zone</div>
-    <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier la zone</button>
+    <button class="btn btn-connect" onclick="connectKS03()">🔗 Se connecter au KS03</button>
+    <div id="status">Statut : Non connecté</div>
   </div>
 
   <div class="card">
@@ -72,370 +35,157 @@
   </div>
 
   <div class="card">
-    <h3>🎨 Couleurs Principales</h3>
+    <h3>🎨 Test Couleurs</h3>
     <div class="color-grid">
       <div class="color-btn" style="background: #ff0000;" onclick="sendColor(255, 0, 0)"></div>
       <div class="color-btn" style="background: #00ff00;" onclick="sendColor(0, 255, 0)"></div>
       <div class="color-btn" style="background: #0000ff;" onclick="sendColor(0, 0, 255)"></div>
       <div class="color-btn" style="background: #ffffff;" onclick="sendColor(255, 255, 255)"></div>
-      <div class="color-btn" style="background: #ffff00;" onclick="sendColor(255, 255, 0)"></div>
-      <div class="color-btn" style="background: #00ffff;" onclick="sendColor(0, 255, 255)"></div>
-      <div class="color-btn" style="background: #ff00ff;" onclick="sendColor(255, 0, 255)"></div>
-      <div class="color-btn" style="background: #ff7f00;" onclick="sendColor(255, 127, 0)"></div>
     </div>
   </div>
 
   <div class="card">
-    <h3>☀️ Luminosité</h3>
-    <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
-  </div>
-
-  <div class="card">
-    <h3>⏱️ Minuteur d'extinction</h3>
-    <input type="number" id="custom-minutes" placeholder="Durée en minutes (ex: 30)" min="1">
-    <button class="btn btn-timer" onclick="startTimerMinutes()">Démarrer le minuteur</button>
-
-    <h3 style="margin-top: 15px;">🕒 Extinction à heure précise</h3>
-    <input type="time" id="off-time">
-    <button class="btn btn-timer" onclick="startTimerExact()">Programmer l'heure</button>
-
-    <div id="timer-display"></div>
-    <button id="cancel-btn" class="btn btn-cancel" style="display:none;" onclick="cancelTimer()">Annuler le minuteur</button>
-  </div>
-
-  <div id="night-overlay" onclick="cancelTimer()">
-    <h2 id="night-timer">⏳ Extinction en cours...</h2>
-    <p>Touchez l'écran pour annuler</p>
+    <h3>📜 Console de Debug</h3>
+    <div id="logs">Prêt à tester...<br></div>
   </div>
 
   <script>
-    const zoneProtocols = {
-      chambre: 'keepsmile',
-      bureau: 'lotuslamp',
-      meuble: 'lotuslamp'
-    };
+    let device = null;
+    let writeChar = null;
+    let keepAliveInterval = null;
 
-    let savedDevices = { chambre: null, bureau: null, meuble: null };
-    let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
-    let keepAliveTimers = { chambre: null, bureau: null, meuble: null };
-    
-    let currentZone = null;
-    let lastBrightnessTime = 0;
-    let activeTimer = null;
-    let wakeLock = null;
+    const statusDiv = document.getElementById('status');
+    const logsDiv = document.getElementById('logs');
 
-    const status = document.getElementById('status');
-    const timerDisplay = document.getElementById('timer-display');
-    const nightOverlay = document.getElementById('night-overlay');
-    const nightTimer = document.getElementById('night-timer');
-    const forgetBtn = document.getElementById('forget-btn');
-
-    // UUIDs spécifiques Triones/KS03 et LotusLamp
-    const TARGET_UUIDS = [
-      '0000fff0-0000-1000-8000-00805f9b34fb', // KS03 / Triones Service
-      '0000ffe0-0000-1000-8000-00805f9b34fb', // LotusLamp / Triones Alt Service
-      '0000ffd0-0000-1000-8000-00805f9b34fb'
-    ];
-
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+    function log(msg) {
+      console.log(msg);
+      logsDiv.innerHTML += `> ${msg}<br>`;
+      logsDiv.scrollTop = logsDiv.scrollHeight;
     }
 
-    function releaseWakeLock() {
-      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-    }
-
-    async function selectZone(zone) {
-      document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(`zone-${zone}`).classList.add('active');
-      currentZone = zone;
-
-      if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT";
-        status.style.color = "#ff9f1c";
-        forgetBtn.style.display = 'none';
-        return;
-      }
-
-      forgetBtn.style.display = 'inline-block';
-
-      if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()}`;
-        status.style.color = "#34c759";
-        return;
-      }
-
+    async function connectKS03() {
       try {
-        if (!savedDevices[zone]) {
-          status.innerText = `🔍 Sélectionner ${zone.toUpperCase()}...`;
-          savedDevices[zone] = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: TARGET_UUIDS
-          });
+        log("Recherche du KS03...");
+        statusDiv.innerText = "🔍 Recherche en cours...";
+        statusDiv.style.color = "#ff9f1c";
 
-          savedDevices[zone].addEventListener('gattserverdisconnected', () => onDisconnected(zone));
+        // Demande d'accès très large spécifiquement pour Bluefy
+        device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [
+            '0000fff0-0000-1000-8000-00805f9b34fb',
+            '0000ffe0-0000-1000-8000-00805f9b34fb',
+            '0000ffd0-0000-1000-8000-00805f9b34fb',
+            '0000ff00-0000-1000-8000-00805f9b34fb'
+          ]
+        });
+
+        device.addEventListener('gattserverdisconnected', onDisconnected);
+
+        log(`Appareil sélectionné : ${device.name || 'Inconnu'}`);
+        log("Connexion au serveur GATT...");
+        const server = await device.gatt.connect();
+
+        log("Analyse des services...");
+        const services = await server.getPrimaryServices();
+        log(`${services.length} service(s) trouvé(s)`);
+
+        writeChar = null;
+
+        // Parcours complet pour trouver la meilleure caractéristique d'écriture
+        for (const service of services) {
+          log(`Analyse service : ${service.uuid}`);
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const c of characteristics) {
+              log(` -> Caractéristique : ${c.uuid} [W:${c.properties.write}, WNoResp:${c.properties.writeWithoutResponse}, Notify:${c.properties.notify}]`);
+
+              // Tenter de s'abonner aux notifications si possible (indispensable sur certaines puces KS03)
+              if (c.properties.notify || c.properties.indicate) {
+                try {
+                  await c.startNotifications();
+                  log(`    -> Notifications activées sur ${c.uuid}`);
+                } catch(e) {}
+              }
+
+              // Priorité aux caractéristiques d'écriture
+              if (c.properties.writeWithoutResponse || c.properties.write) {
+                if (!writeChar || c.uuid.includes('fff3') || c.uuid.includes('ffe9')) {
+                  writeChar = c;
+                }
+              }
+            }
+          } catch(e) {
+            log(` Erreur lecture service : ${e.message}`);
+          }
         }
 
-        status.innerText = `🔗 Connexion à ${savedDevices[zone].name || zone}...`;
-        const server = await savedDevices[zone].gatt.connect();
+        if (writeChar) {
+          log(`✅ Caractéristique d'écriture retenue : ${writeChar.uuid}`);
+          statusDiv.innerText = `✅ Connecté : ${device.name || 'KS03'}`;
+          statusDiv.style.color = "#34c759";
 
-        // Connexion ciblée selon le type de ruban
-        savedCharacteristics[zone] = await connectAndBindKS03(server, zoneProtocols[zone]);
-
-        if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()}`;
-          status.style.color = "#34c759";
-          startKeepAlive(zone);
+          // Lancement immédiat du maintien de connexion (Ping/Keep-Alive)
+          startKeepAlive();
         } else {
-          throw new Error("Impossible de trouver la caractéristique d'écriture.");
+          throw new Error("Aucune caractéristique d'écriture trouvée.");
+        }
+
+      } catch (err) {
+        log(`❌ Erreur : ${err.message}`);
+        statusDiv.innerText = "❌ Échec de connexion";
+        statusDiv.style.color = "#e71d36";
+      }
+    }
+
+    function startKeepAlive() {
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
+
+      log("⚡ Envoi de la trame initiale d'accroche...");
+      // Envoi direct de la commande Keep-Alive
+      sendRawBytes([0xef, 0x01, 0x77]);
+
+      // Envoie un signal toutes les 1.2 secondes pour empêcher l'iPhone/Bluefy de fermer le canal
+      keepAliveInterval = setInterval(() => {
+        if (device && device.gatt.connected && writeChar) {
+          sendRawBytes([0xef, 0x01, 0x77]);
+        } else {
+          clearInterval(keepAliveInterval);
+        }
+      }, 1200);
+    }
+
+    async function sendRawBytes(bytes) {
+      if (!writeChar) return;
+      const data = new Uint8Array(bytes);
+      try {
+        if (writeChar.properties.writeWithoutResponse) {
+          await writeChar.writeValueWithoutResponse(data);
+        } else {
+          await writeChar.writeValue(data);
         }
       } catch (e) {
-        console.error(e);
-        savedDevices[zone] = null;
-        savedCharacteristics[zone] = null;
-        status.innerText = "❌ Connexion échouée. Vérifiez l'accès Bluetooth.";
-        status.style.color = "#e71d36";
+        // En cas d'échec silencieux
       }
     }
 
-    // Fonction de liaison spéciale KS03 / LotusLamp
-    async function connectAndBindKS03(server, protocol) {
-      const services = await server.getPrimaryServices();
-      let targetChar = null;
-
-      for (const service of services) {
-        try {
-          const characteristics = await service.getCharacteristics();
-          for (const c of characteristics) {
-            const uuid = c.uuid.toLowerCase();
-
-            // Pour KS03 (Triones) : prioriser FFF3 puis FFE9
-            if (protocol === 'keepsmile') {
-              if (uuid.includes('fff3') || uuid.includes('ffe9')) {
-                targetChar = c;
-                break;
-              }
-            } 
-            // Pour LotusLamp : prioriser FFE1 ou FFD1
-            else if (protocol === 'lotuslamp') {
-              if (uuid.includes('ffe1') || uuid.includes('ffd1')) {
-                targetChar = c;
-                break;
-              }
-            }
-
-            // Fallback : première caractéristique inscriptible
-            if (!targetChar && (c.properties.writeWithoutResponse || c.properties.write)) {
-              targetChar = c;
-            }
-          }
-        } catch(e) {}
-        if (targetChar) break;
-      }
-
-      // ACCROCHE IMMÉDIATE POUR KS03 : envoie une trame instantanée avant les 2s fatidiques
-      if (targetChar && protocol === 'keepsmile') {
-        try {
-          const ping = new Uint8Array([0xef, 0x01, 0x77]);
-          if (targetChar.properties.writeWithoutResponse) {
-            await targetChar.writeValueWithoutResponse(ping);
-          } else {
-            await targetChar.writeValue(ping);
-          }
-        } catch(e) {}
-      }
-
-      return targetChar;
-    }
-
-    // Keep-alive fréquent (toutes les 1.5s pour bloquer la déconnexion KS03)
-    function startKeepAlive(zone) {
-      if (keepAliveTimers[zone]) clearInterval(keepAliveTimers[zone]);
-
-      keepAliveTimers[zone] = setInterval(async () => {
-        if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-          try {
-            if (zoneProtocols[zone] === 'keepsmile') {
-              // Trame neutre de vérification KS03
-              await writeData(savedCharacteristics[zone], [0xef, 0x01, 0x77]);
-            }
-          } catch(e) {}
-        } else {
-          clearInterval(keepAliveTimers[zone]);
-        }
-      }, 1500); // 1.5 seconde
-    }
-
-    function onDisconnected(zone) {
-      if (keepAliveTimers[zone]) clearInterval(keepAliveTimers[zone]);
-      savedCharacteristics[zone] = null;
-      if (currentZone === zone) {
-        status.innerText = `⚠️ Déconnecté de ${zone.toUpperCase()}. Réappuyez pour vous reconnecter.`;
-        status.style.color = "#ff9f1c";
-      }
-    }
-
-    function forgetCurrentZone() {
-      if (!currentZone || currentZone === 'all') return;
-      if (keepAliveTimers[currentZone]) clearInterval(keepAliveTimers[currentZone]);
-      if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-        savedDevices[currentZone].gatt.disconnect();
-      }
-      savedDevices[currentZone] = null;
-      savedCharacteristics[currentZone] = null;
-      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée.`;
-      status.style.color = "#ff9f1c";
-    }
-
-    async function writeData(char, bytes) {
-      if (!char) return;
-      const payload = new Uint8Array(bytes);
-      try {
-        if (char.properties.writeWithoutResponse) {
-          await char.writeValueWithoutResponse(payload);
-        } else {
-          await char.writeValue(payload);
-        }
-      } catch(e) {
-        try { await char.writeValue(payload); } catch(err) {}
-      }
-    }
-
-    // --- PROTOCOLES ---
-
-    function getPowerPayload(zone, state) {
-      return zoneProtocols[zone] === 'keepsmile'
-        ? [0xcc, state ? 0x23 : 0x24, 0x33]
-        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
-    }
-
-    function getColorPayload(zone, r, g, b) {
-      return zoneProtocols[zone] === 'keepsmile'
-        ? [0x56, r, g, b, 0x00, 0xf0, 0xaa]
-        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
-    }
-
-    function getBrightnessPayload(zone, val) {
-      if (zoneProtocols[zone] === 'keepsmile') {
-        const pct = Math.round((parseInt(val) / 100) * 255);
-        return [0xbb, pct, 0x00, 0x44];
-      } else {
-        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
-      }
+    function onDisconnected() {
+      log("⚠️ Déconnexion détectée par l'appareil !");
+      statusDiv.innerText = "⚠️ Déconnecté !";
+      statusDiv.style.color = "#ff9f1c";
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
     }
 
     async function sendPower(state) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      if (currentZone === 'all') {
-        for (const zone of ['chambre', 'bureau', 'meuble']) {
-          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-            await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
-          }
-        }
-      } else {
-        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-          await writeData(savedCharacteristics[currentZone], getPowerPayload(currentZone, state));
-        } else {
-          alert("Ruban non connecté. Cliquez sur la zone pour vous reconnecter.");
-        }
-      }
+      log(`Commande Power : ${state ? 'ON' : 'OFF'}`);
+      // Protocole trame Keepsmile : [0xCC, 0x23 (ON) / 0x24 (OFF), 0x33]
+      await sendRawBytes([0xcc, state ? 0x23 : 0x24, 0x33]);
     }
 
     async function sendColor(r, g, b) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      if (currentZone === 'all') {
-        for (const zone of ['chambre', 'bureau', 'meuble']) {
-          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-            await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
-          }
-        }
-      } else {
-        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-          await writeData(savedCharacteristics[currentZone], getColorPayload(currentZone, r, g, b));
-        } else {
-          alert("Ruban non connecté.");
-        }
-      }
-    }
-
-    function handleBrightnessSlider(val) {
-      const now = Date.now();
-      if (now - lastBrightnessTime > 50) {
-        lastBrightnessTime = now;
-        if (!currentZone) return;
-
-        if (currentZone === 'all') {
-          for (const zone of ['chambre', 'bureau', 'meuble']) {
-            if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-              writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
-            }
-          }
-        } else {
-          if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-            writeData(savedCharacteristics[currentZone], getBrightnessPayload(currentZone, val));
-          }
-        }
-      }
-    }
-
-    function startCountdown(durationMs) {
-      if (activeTimer) clearInterval(activeTimer);
-      document.getElementById('cancel-btn').style.display = 'block';
-
-      requestWakeLock();
-      nightOverlay.style.display = 'flex';
-
-      const targetTime = Date.now() + durationMs;
-
-      activeTimer = setInterval(() => {
-        const remaining = targetTime - Date.now();
-
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          sendPower(false);
-          timerDisplay.innerText = "⚡ LEDs éteintes !";
-          document.getElementById('cancel-btn').style.display = 'none';
-          nightOverlay.style.display = 'none';
-          releaseWakeLock();
-        } else {
-          const m = Math.floor(remaining / 60000);
-          const s = Math.floor((remaining % 60000) / 1000);
-          const txt = `⏳ Extinction dans ${m}m ${s}s`;
-          timerDisplay.innerText = txt;
-          nightTimer.innerText = txt;
-        }
-      }, 1000);
-    }
-
-    function startTimerMinutes() {
-      const mins = parseInt(document.getElementById('custom-minutes').value);
-      if (isNaN(mins) || mins <= 0) return alert("Indiquez une durée valide.");
-      startCountdown(mins * 60000);
-    }
-
-    function startTimerExact() {
-      const timeVal = document.getElementById('off-time').value;
-      if (!timeVal) return alert("Sélectionnez une heure.");
-      
-      const [h, m] = timeVal.split(':');
-      const now = new Date();
-      const target = new Date();
-      target.setHours(parseInt(h), parseInt(m), 0, 0);
-      if (target <= now) target.setDate(target.getDate() + 1);
-      
-      startCountdown(target.getTime() - now.getTime());
-    }
-
-    function cancelTimer() {
-      if (activeTimer) clearInterval(activeTimer);
-      timerDisplay.innerText = "Minuteur annulé.";
-      document.getElementById('cancel-btn').style.display = 'none';
-      nightOverlay.style.display = 'none';
-      releaseWakeLock();
+      log(`Commande Couleur : R=${r} G=${g} B=${b}`);
+      // Protocole couleur Keepsmile : [0x56, R, G, B, 0x00, 0xF0, 0xAA]
+      await sendRawBytes([0x56, r, g, b, 0x00, 0xf0, 0xaa]);
     }
   </script>
 </body>
