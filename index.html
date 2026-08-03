@@ -10,14 +10,12 @@
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
-    .btn-gaming { background: linear-gradient(135deg, #8a2be2, #00d2ff); }
-    .btn-work { background: linear-gradient(135deg, #e0e0e0, #8e9eab); color: #000; }
-    .btn-sleep { background: linear-gradient(135deg, #4a0000, #1a0000); border: 1px solid #ff3b30; }
-    .btn-effect { background-color: #3a3a3c; font-size: 14px; padding: 12px; }
     .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
+    .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
     .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px; font-size: 14px; width: 48%; display: inline-block; margin-bottom: 8px; color: #fff; font-weight: bold; }
     .btn-zone.active { border-color: #ff9f1c; background-color: #ff9f1c; color: #000; }
     #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
+    #timer-display { font-size: 18px; color: #ff9f1c; font-weight: bold; margin-top: 10px; }
     .row { display: flex; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; }
     h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
@@ -69,16 +67,18 @@
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
   </div>
 
+  <!-- GESTION DU MINUTEUR NAVIGATEUR -->
   <div class="card">
-    <h3>⏱️ Extinction par Minuteur (Minutes)</h3>
-    <input type="number" id="custom-minutes" placeholder="Ex: 30 (en minutes)" min="1" max="1440">
-    <button class="btn btn-timer" onclick="programCustomTimer()">Lancer le minuteur</button>
-  </div>
+    <h3>⏱️ Minuteur d'extinction</h3>
+    <input type="number" id="custom-minutes" placeholder="Durée en minutes (ex: 30)" min="1">
+    <button class="btn btn-timer" onclick="startTimerMinutes()">Démarrer le minuteur</button>
 
-  <div class="card">
-    <h3>🕒 Extinction à heure précise</h3>
+    <h3 style="margin-top: 15px;">🕒 Extinction à heure précise</h3>
     <input type="time" id="off-time">
-    <button class="btn btn-timer" onclick="programExactTime()">Programmer l'extinction</button>
+    <button class="btn btn-timer" onclick="startTimerExact()">Programmer l'heure</button>
+
+    <div id="timer-display"></div>
+    <button id="cancel-btn" class="btn btn-cancel" style="display:none;" onclick="cancelTimer()">Annuler le minuteur</button>
   </div>
 
   <script>
@@ -86,16 +86,14 @@
     let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
     let currentZone = null;
     let lastBrightnessTime = 0;
+    let activeTimer = null;
     const status = document.getElementById('status');
+    const timerDisplay = document.getElementById('timer-display');
 
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-    // Services Bluetooth récurrents LotusLamp X / ELK-BLEDOM / iLK
     const LOTUS_SERVICES = [
       '0000ffe0-0000-1000-8000-00805f9b34fb',
       '0000fff0-0000-1000-8000-00805f9b34fb',
-      '0000ffd0-0000-1000-8000-00805f9b34fb',
-      '0000180a-0000-1000-8000-00805f9b34fb'
+      '0000ffd0-0000-1000-8000-00805f9b34fb'
     ];
 
     async function selectZone(zone) {
@@ -104,27 +102,26 @@
       currentZone = zone;
 
       if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT (Séquentiel)";
+        status.innerText = "🌐 Mode TOUT";
         status.style.color = "#ff9f1c";
         return;
       }
 
       if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté à ${zone.toUpperCase()} (LotusLamp)`;
+        status.innerText = `✅ Connecté à ${zone.toUpperCase()}`;
         status.style.color = "#34c759";
         return;
       }
 
       try {
         if (!savedDevices[zone]) {
-          status.innerText = `🔍 Choisissez le ruban ${zone.toUpperCase()}...`;
+          status.innerText = `🔍 Connexion ${zone.toUpperCase()}...`;
           savedDevices[zone] = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
             optionalServices: LOTUS_SERVICES
           });
         }
 
-        status.innerText = `🔗 Connexion à ${zone.toUpperCase()}...`;
         const server = await savedDevices[zone].gatt.connect();
         const services = await server.getPrimaryServices();
 
@@ -142,7 +139,7 @@
         }
 
         if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté à ${zone.toUpperCase()} (LotusLamp)`;
+          status.innerText = `✅ Connecté à ${zone.toUpperCase()}`;
           status.style.color = "#34c759";
         }
       } catch (e) {
@@ -188,71 +185,57 @@
       }
     }
 
-    // Protocoles spécifiques LotusLamp X
     function getColorPayload(r, g, b) { return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef]; }
     function getPowerPayload(state) { return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef]; }
     function getBrightnessPayload(val) { return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef]; }
 
-    // LotusLamp X requiert l'envoi du temps système en 12 octets
-    async function syncLotusTime() {
-      const d = new Date();
-      const year = d.getFullYear() % 100;
-      const month = d.getMonth() + 1;
-      const day = d.getDate();
-      const hrs = d.getHours();
-      const mins = d.getMinutes();
-      const secs = d.getSeconds();
-      const weekDay = d.getDay() === 0 ? 7 : d.getDay();
+    // --- LOGIQUE DU MINUTEUR JS ---
+    function startCountdown(durationMs) {
+      if (activeTimer) clearInterval(activeTimer);
+      document.getElementById('cancel-btn').style.display = 'block';
 
-      // Trame Synchro Temps LotusLamp X: 7E 0B 83 [AA] [MM] [JJ] [HH] [MM] [SS] [Semaine] 00 EF
-      const syncPayload = [0x7e, 0x0b, 0x83, year, month, day, hrs, mins, secs, weekDay, 0x00, 0xef];
-      await sendToCurrent(syncPayload);
-      await sleep(250);
+      const targetTime = Date.now() + durationMs;
+
+      activeTimer = setInterval(() => {
+        const remaining = targetTime - Date.now();
+
+        if (remaining <= 0) {
+          clearInterval(activeTimer);
+          sendToCurrent(getPowerPayload(false)); // Envoie la commande d'extinction
+          timerDisplay.innerText = "⚡ LEDs éteintes !";
+          document.getElementById('cancel-btn').style.display = 'none';
+        } else {
+          const m = Math.floor(remaining / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+          timerDisplay.innerText = `⏳ Extinction dans : ${m}m ${s}s`;
+        }
+      }, 1000);
     }
 
-    // Programmation d'alarme hors-ligne LotusLamp X
-    async function setLotusOffTimer(hours, minutes) {
-      // 1. Synchro de la date/heure actuelle
-      await syncLotusTime();
-
-      // 2. Commande de programmation d'extinction LotusLamp X (Format: 7E 08 82 [HH] [MM] [SS] 00 80 EF)
-      // 0x00 = Extinction / 0x80 = Activer l'alarme unique
-      const timerPayload = [0x7e, 0x08, 0x82, parseInt(hours), parseInt(minutes), 0x00, 0x00, 0x80, 0xef];
-      await sendToCurrent(timerPayload);
-    }
-
-    async function programCustomTimer() {
+    function startTimerMinutes() {
       const mins = parseInt(document.getElementById('custom-minutes').value);
-      if (isNaN(mins) || mins <= 0) {
-        alert("Veuillez entrer un nombre de minutes valide.");
-        return;
-      }
-
-      const target = new Date(Date.now() + mins * 60000);
-      const h = target.getHours();
-      const m = target.getMinutes();
-
-      status.innerText = "⏳ Envoi à la puce LotusLamp...";
-      await setLotusOffTimer(h, m);
-      
-      status.innerText = `✅ Programmé à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      alert(`Minuteur LotusLamp activé !\nLa puce éteindra les LEDs à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}.\nVous pouvez éteindre le téléphone.`);
+      if (isNaN(mins) || mins <= 0) return alert("Indiquez une durée valide.");
+      startCountdown(mins * 60000);
     }
 
-    async function programExactTime() {
+    function startTimerExact() {
       const timeVal = document.getElementById('off-time').value;
-      if (!timeVal) {
-        alert("Veuillez choisir une heure d'extinction.");
-        return;
-      }
-
-      const [hours, minutes] = timeVal.split(':');
+      if (!timeVal) return alert("Sélectionnez une heure.");
       
-      status.innerText = "⏳ Envoi à la puce LotusLamp...";
-      await setLotusOffTimer(hours, minutes);
+      const [h, m] = timeVal.split(':');
+      const now = new Date();
+      const target = new Date();
+      target.setHours(parseInt(h), parseInt(m), 0, 0);
+      
+      if (target <= now) target.setDate(target.getDate() + 1); // Si l'heure est passée, programme pour demain
+      
+      startCountdown(target.getTime() - now.getTime());
+    }
 
-      status.innerText = `✅ Programmé à ${hours}:${minutes}`;
-      alert(`Horloge LotusLamp programmée !\nExtinction à ${hours}:${minutes}.\nVous pouvez éteindre le téléphone.`);
+    function cancelTimer() {
+      if (activeTimer) clearInterval(activeTimer);
+      timerDisplay.innerText = "Minuteur annulé.";
+      document.getElementById('cancel-btn').style.display = 'none';
     }
   </script>
 </body>
