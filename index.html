@@ -15,11 +15,14 @@
     .btn-work { background: linear-gradient(135deg, #e0e0e0, #8e9eab); color: #000; }
     .btn-sleep { background: linear-gradient(135deg, #4a0000, #1a0000); border: 1px solid #ff3b30; }
     .btn-effect { background-color: #3a3a3c; font-size: 14px; padding: 12px; }
+    .btn-timer { background-color: #ff9500; font-size: 14px; padding: 12px; width: 31%; display: inline-block; }
     #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
-    .row { display: flex; justify-content: space-between; }
-    input[type="color"] { width: 100%; height: 50px; border: none; border-radius: 12px; background: none; cursor: pointer; }
-    input[type="range"] { width: 100%; margin: 10px 0; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
     h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
+    
+    /* Grille de couleurs fixes */
+    .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -37,14 +40,33 @@
     </div>
   </div>
 
+  <!-- Couleurs de base par boutons fixes -->
   <div class="card">
-    <h3>🎨 Couleur Personnalisée</h3>
-    <input type="color" id="colorPicker" value="#00d2ff" onchange="applyCustomColor(this.value)">
+    <h3>🎨 Couleurs Principales</h3>
+    <div class="color-grid">
+      <div class="color-btn" style="background: #ff0000;" onclick="sendColor(255, 0, 0)"></div>
+      <div class="color-btn" style="background: #00ff00;" onclick="sendColor(0, 255, 0)"></div>
+      <div class="color-btn" style="background: #0000ff;" onclick="sendColor(0, 0, 255)"></div>
+      <div class="color-btn" style="background: #ffffff;" onclick="sendColor(255, 255, 255)"></div>
+      <div class="color-btn" style="background: #ffff00;" onclick="sendColor(255, 255, 0)"></div>
+      <div class="color-btn" style="background: #00ffff;" onclick="sendColor(0, 255, 255)"></div>
+      <div class="color-btn" style="background: #ff00ff;" onclick="sendColor(255, 0, 255)"></div>
+      <div class="color-btn" style="background: #ff7f00;" onclick="sendColor(255, 127, 0)"></div>
+    </div>
   </div>
 
   <div class="card">
     <h3>☀️ Luminosité</h3>
-    <input type="range" id="brightness" min="1" max="100" value="100" onchange="sendBrightness(this.value)">
+    <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" onchange="sendBrightness(this.value)">
+  </div>
+
+  <div class="card">
+    <h3>⏱️ Minuteur d'Extinction</h3>
+    <div class="row">
+      <button class="btn btn-timer" onclick="setTimer(15)">15 Min</button>
+      <button class="btn btn-timer" onclick="setTimer(30)">30 Min</button>
+      <button class="btn btn-timer" onclick="setTimer(60)">1 Heure</button>
+    </div>
   </div>
 
   <div class="card">
@@ -55,20 +77,21 @@
   </div>
 
   <div class="card">
-    <h3>✨ Effets & Animations</h3>
+    <h3>✨ Effets</h3>
     <div class="row">
-      <button class="btn btn-effect" style="width: 48%;" onclick="sendMode(0x87)">🌈 Fondu Couleurs</button>
-      <button class="btn btn-effect" style="width: 48%;" onclick="sendMode(0x8b)">⚡ Stroboscope</button>
+      <button class="btn btn-effect" style="width: 48%;" onclick="sendMode(0x87)">🌈 Fondu</button>
+      <button class="btn btn-effect" style="width: 48%;" onclick="sendMode(0x8b)">⚡ Strobe</button>
     </div>
   </div>
 
   <script>
     let gattCharacteristic = null;
+    let timerTimeout = null;
 
     async function connectBluetooth() {
       const status = document.getElementById('status');
       try {
-        status.innerText = "🔍 Recherche d'appareils...";
+        status.innerText = "🔍 Recherche...";
         
         const device = await navigator.bluetooth.requestDevice({
           acceptAllDevices: true,
@@ -98,10 +121,10 @@
         }
 
         if (gattCharacteristic) {
-          status.innerText = "✅ Connecté à " + (device.name || "Ruban LED");
+          status.innerText = "✅ Connecté";
           status.style.color = "#34c759";
         } else {
-          status.innerText = "⚠️ Erreur canal de contrôle";
+          status.innerText = "⚠️ Erreur canal";
         }
       } catch (error) {
         status.innerText = "❌ Connexion échouée";
@@ -134,21 +157,22 @@
     }
 
     function sendBrightness(val) {
-      // Valeur de 0 à 100 convertie pour le protocole LED (0x00 à 0x64)
       const b = parseInt(val);
       sendPayload([0x7e, 0x04, 0x01, b, 0x00, 0x00, 0xef]);
     }
 
     function sendMode(modeByte) {
-      // 0x87 = Fondu, 0x8b = Stroboscope
       sendPayload([0x7e, 0x05, 0x03, modeByte, 0x03, 0x00, 0xef]);
     }
 
-    function applyCustomColor(hex) {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      sendColor(r, g, b);
+    function setTimer(minutes) {
+      if (timerTimeout) clearTimeout(timerTimeout);
+      const ms = minutes * 60 * 1000;
+      timerTimeout = setTimeout(() => {
+        sendPower(false);
+        alert("Minuteur terminé : Ruban LED éteint.");
+      }, ms);
+      alert(`Minuteur programmé pour s'éteindre dans ${minutes} minutes ! (Gardez la page ouverte dans Bluefy)`);
     }
   </script>
 </body>
