@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Directe & Minuteurs Fixés</title>
+  <title>Télécommande LED - LotusLamp X</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -30,7 +30,7 @@
   </style>
 </head>
 <body>
-  <h2>💡 Télécommande LED Directe</h2>
+  <h2>💡 Contrôle LotusLamp X</h2>
 
   <div class="card">
     <h3>🎯 Sélectionnez la Zone</h3>
@@ -71,7 +71,7 @@
 
   <div class="card">
     <h3>⏱️ Extinction par Minuteur (Minutes)</h3>
-    <input type="number" id="custom-minutes" placeholder="Ex: 45 (en minutes)" min="1" max="1440">
+    <input type="number" id="custom-minutes" placeholder="Ex: 30 (en minutes)" min="1" max="1440">
     <button class="btn btn-timer" onclick="programCustomTimer()">Lancer le minuteur</button>
   </div>
 
@@ -79,21 +79,6 @@
     <h3>🕒 Extinction à heure précise</h3>
     <input type="time" id="off-time">
     <button class="btn btn-timer" onclick="programExactTime()">Programmer l'extinction</button>
-  </div>
-
-  <div class="card">
-    <h3>🎭 Ambiances Rapides</h3>
-    <button class="btn btn-gaming" onclick="sendToCurrent(getColorPayload(138, 43, 226))">🎮 Gaming</button>
-    <button class="btn btn-work" onclick="sendToCurrent(getColorPayload(220, 235, 255))">💼 Travail</button>
-    <button class="btn btn-sleep" onclick="sendToCurrent(getColorPayload(30, 0, 0))">🌙 Sommeil</button>
-  </div>
-
-  <div class="card">
-    <h3>✨ Effets</h3>
-    <div class="row">
-      <button class="btn btn-effect" style="width: 48%;" onclick="sendToCurrent(getModePayload(0x87))">🌈 Fondu</button>
-      <button class="btn btn-effect" style="width: 48%;" onclick="sendToCurrent(getModePayload(0x8b))">⚡ Strobe</button>
-    </div>
   </div>
 
   <script>
@@ -104,6 +89,14 @@
     const status = document.getElementById('status');
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // Services Bluetooth récurrents LotusLamp X / ELK-BLEDOM / iLK
+    const LOTUS_SERVICES = [
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000ffd0-0000-1000-8000-00805f9b34fb',
+      '0000180a-0000-1000-8000-00805f9b34fb'
+    ];
 
     async function selectZone(zone) {
       document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
@@ -117,7 +110,7 @@
       }
 
       if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté à ${zone.toUpperCase()} (Maintien actif)`;
+        status.innerText = `✅ Connecté à ${zone.toUpperCase()} (LotusLamp)`;
         status.style.color = "#34c759";
         return;
       }
@@ -127,11 +120,7 @@
           status.innerText = `🔍 Choisissez le ruban ${zone.toUpperCase()}...`;
           savedDevices[zone] = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: [
-              '0000fff0-0000-1000-8000-00805f9b34fb',
-              '0000ffe0-0000-1000-8000-00805f9b34fb',
-              '0000ffd0-0000-1000-8000-00805f9b34fb'
-            ]
+            optionalServices: LOTUS_SERVICES
           });
         }
 
@@ -153,7 +142,7 @@
         }
 
         if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté à ${zone.toUpperCase()} (Verrouillé)`;
+          status.innerText = `✅ Connecté à ${zone.toUpperCase()} (LotusLamp)`;
           status.style.color = "#34c759";
         }
       } catch (e) {
@@ -164,10 +153,10 @@
 
     async function writeData(char, bytes) {
       try {
-        await char.writeValueWithResponse(new Uint8Array(bytes));
+        await char.writeValueWithoutResponse(new Uint8Array(bytes));
       } catch(e) {
         try {
-          await char.writeValueWithoutResponse(new Uint8Array(bytes));
+          await char.writeValue(new Uint8Array(bytes));
         } catch(err) {}
       }
     }
@@ -199,34 +188,37 @@
       }
     }
 
+    // Protocoles spécifiques LotusLamp X
     function getColorPayload(r, g, b) { return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef]; }
     function getPowerPayload(state) { return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef]; }
     function getBrightnessPayload(val) { return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef]; }
-    function getModePayload(modeByte) { return [0x7e, 0x05, 0x03, modeByte, 0x03, 0x00, 0xef]; }
 
-    // Synchronisation robuste de l'horloge système vers la puce LED
-    async function syncChipTime() {
+    // LotusLamp X requiert l'envoi du temps système en 12 octets
+    async function syncLotusTime() {
       const d = new Date();
+      const year = d.getFullYear() % 100;
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
       const hrs = d.getHours();
       const mins = d.getMinutes();
       const secs = d.getSeconds();
-      const day = d.getDay() === 0 ? 7 : d.getDay(); // 1 = Lundi ... 7 = Dimanche
+      const weekDay = d.getDay() === 0 ? 7 : d.getDay();
 
-      // Trame de synchro temps : 0x7e 0x07 0x83 HH MM SS DAY 0x00 0xef
-      const payloadTime = [0x7e, 0x07, 0x83, hrs, mins, secs, day, 0x00, 0xef];
-      await sendToCurrent(payloadTime);
-      await sleep(300); // Temps de pause obligatoire pour le contrôleur
+      // Trame Synchro Temps LotusLamp X: 7E 0B 83 [AA] [MM] [JJ] [HH] [MM] [SS] [Semaine] 00 EF
+      const syncPayload = [0x7e, 0x0b, 0x83, year, month, day, hrs, mins, secs, weekDay, 0x00, 0xef];
+      await sendToCurrent(syncPayload);
+      await sleep(250);
     }
 
-    // Programmation matérielle de l'extinction
-    async function setHardwareOffTime(hours, minutes) {
-      // Step 1: Synchro de l'heure actuelle du téléphone vers la puce
-      await syncChipTime();
+    // Programmation d'alarme hors-ligne LotusLamp X
+    async function setLotusOffTimer(hours, minutes) {
+      // 1. Synchro de la date/heure actuelle
+      await syncLotusTime();
 
-      // Step 2: Envoi de la commande d'extinction (0x82 / Alarme 1 / Action OFF 0x00 / Tous les jours 0x7f)
-      // 0x7e, 0x08, 0x82, Heure, Minute, Secondes(00), Action(00=OFF), Jours(7F=Tous), 0xef
-      const payloadAlarm = [0x7e, 0x08, 0x82, parseInt(hours), parseInt(minutes), 0x00, 0x00, 0x7f, 0xef];
-      await sendToCurrent(payloadAlarm);
+      // 2. Commande de programmation d'extinction LotusLamp X (Format: 7E 08 82 [HH] [MM] [SS] 00 80 EF)
+      // 0x00 = Extinction / 0x80 = Activer l'alarme unique
+      const timerPayload = [0x7e, 0x08, 0x82, parseInt(hours), parseInt(minutes), 0x00, 0x00, 0x80, 0xef];
+      await sendToCurrent(timerPayload);
     }
 
     async function programCustomTimer() {
@@ -236,15 +228,15 @@
         return;
       }
 
-      const future = new Date(Date.now() + mins * 60000);
-      const h = future.getHours();
-      const m = future.getMinutes();
+      const target = new Date(Date.now() + mins * 60000);
+      const h = target.getHours();
+      const m = target.getMinutes();
 
-      status.innerText = "⏳ Programmation de la puce...";
-      await setHardwareOffTime(h, m);
+      status.innerText = "⏳ Envoi à la puce LotusLamp...";
+      await setLotusOffTimer(h, m);
       
       status.innerText = `✅ Programmé à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-      alert(`Puce configurée !\nExtinction prévue à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}.\nVous pouvez éteindre le téléphone.`);
+      alert(`Minuteur LotusLamp activé !\nLa puce éteindra les LEDs à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}.\nVous pouvez éteindre le téléphone.`);
     }
 
     async function programExactTime() {
@@ -256,11 +248,11 @@
 
       const [hours, minutes] = timeVal.split(':');
       
-      status.innerText = "⏳ Programmation de la puce...";
-      await setHardwareOffTime(hours, minutes);
+      status.innerText = "⏳ Envoi à la puce LotusLamp...";
+      await setLotusOffTimer(hours, minutes);
 
       status.innerText = `✅ Programmé à ${hours}:${minutes}`;
-      alert(`Puce configurée !\nExtinction prévue à ${hours}:${minutes}.\nVous pouvez éteindre le téléphone.`);
+      alert(`Horloge LotusLamp programmée !\nExtinction à ${hours}:${minutes}.\nVous pouvez éteindre le téléphone.`);
     }
   </script>
 </body>
