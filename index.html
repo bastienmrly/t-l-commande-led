@@ -3,19 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED KS03 - LotusLamp</title>
+  <title>Télécommande LED Multi-Marques</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
-    .btn-alt { background-color: #7209b7; margin-top: 8px; font-size: 14px; }
     .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
     .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
-    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px; font-size: 14px; width: 48%; display: inline-block; margin-bottom: 8px; color: #fff; font-weight: bold; }
+    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px; font-size: 13px; width: 48%; display: inline-block; margin-bottom: 8px; color: #fff; font-weight: bold; }
     .btn-zone.active { border-color: #ff9f1c; background-color: #ff9f1c; color: #000; }
-    .btn-forget { background-color: transparent; border: 1px dashed #e71d36; color: #e71d36; font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-top: 10px; display: none; }
+    .btn-forget { background-color: transparent; border: 1px dashed #e71d36; color: #e71d36; font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-top: 8px; display: none; }
     #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
     #timer-display { font-size: 18px; color: #ff9f1c; font-weight: bold; margin-top: 10px; }
     .row { display: flex; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; }
@@ -38,7 +37,7 @@
   </style>
 </head>
 <body>
-  <h2>💡 Contrôle KS03 / LotusLamp</h2>
+  <h2>💡 Contrôle Universal LED</h2>
 
   <div class="card">
     <h3>🎯 Sélectionnez la Zone</h3>
@@ -49,28 +48,27 @@
       <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">🌐 TOUT</button>
     </div>
     <div id="status">Sélectionnez une zone</div>
-    <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Changement de ruban / Appairer</button>
+    <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
   </div>
 
   <div class="card">
     <div class="row">
-      <button class="btn btn-on" onclick="sendToCurrent(getPowerPayload(true))">ALLUMER</button>
-      <button class="btn btn-off" onclick="sendToCurrent(getPowerPayload(false))">ÉTEINDRE</button>
+      <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
+      <button class="btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
     </div>
-    <button class="btn btn-alt" onclick="sendToCurrent(getAltPowerPayload(true))">⚡ Mode Allumage Alternatif (KS03)</button>
   </div>
 
   <div class="card">
     <h3>🎨 Couleurs Principales</h3>
     <div class="color-grid">
-      <div class="color-btn" style="background: #ff0000;" onclick="sendToCurrent(getColorPayload(255, 0, 0))"></div>
-      <div class="color-btn" style="background: #00ff00;" onclick="sendToCurrent(getColorPayload(0, 255, 0))"></div>
-      <div class="color-btn" style="background: #0000ff;" onclick="sendToCurrent(getColorPayload(0, 0, 255))"></div>
-      <div class="color-btn" style="background: #ffffff;" onclick="sendToCurrent(getColorPayload(255, 255, 255))"></div>
-      <div class="color-btn" style="background: #ffff00;" onclick="sendToCurrent(getColorPayload(255, 255, 0))"></div>
-      <div class="color-btn" style="background: #00ffff;" onclick="sendToCurrent(getColorPayload(0, 255, 255))"></div>
-      <div class="color-btn" style="background: #ff00ff;" onclick="sendToCurrent(getColorPayload(255, 0, 255))"></div>
-      <div class="color-btn" style="background: #ff7f00;" onclick="sendToCurrent(getColorPayload(255, 127, 0))"></div>
+      <div class="color-btn" style="background: #ff0000;" onclick="sendColor(255, 0, 0)"></div>
+      <div class="color-btn" style="background: #00ff00;" onclick="sendColor(0, 255, 0)"></div>
+      <div class="color-btn" style="background: #0000ff;" onclick="sendColor(0, 0, 255)"></div>
+      <div class="color-btn" style="background: #ffffff;" onclick="sendColor(255, 255, 255)"></div>
+      <div class="color-btn" style="background: #ffff00;" onclick="sendColor(255, 255, 0)"></div>
+      <div class="color-btn" style="background: #00ffff;" onclick="sendColor(0, 255, 255)"></div>
+      <div class="color-btn" style="background: #ff00ff;" onclick="sendColor(255, 0, 255)"></div>
+      <div class="color-btn" style="background: #ff7f00;" onclick="sendColor(255, 127, 0)"></div>
     </div>
   </div>
 
@@ -100,6 +98,8 @@
   <script>
     let savedDevices = { chambre: null, bureau: null, meuble: null };
     let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
+    let deviceTypes = { chambre: 'unknown', bureau: 'unknown', meuble: 'unknown' };
+    
     let currentZone = null;
     let lastBrightnessTime = 0;
     let activeTimer = null;
@@ -111,10 +111,9 @@
     const nightTimer = document.getElementById('night-timer');
     const forgetBtn = document.getElementById('forget-btn');
 
-    // Services étendus supportant KS03, Lotus, Triones
-    const LOTUS_SERVICES = [
-      '0000ffe0-0000-1000-8000-00805f9b34fb',
-      '0000fff0-0000-1000-8000-00805f9b34fb',
+    const ALL_SERVICES = [
+      '0000ffe0-0000-1000-8000-00805f9b34fb', // LotusLamp
+      '0000fff0-0000-1000-8000-00805f9b34fb', // Triones / Keepsmile
       '0000ffd0-0000-1000-8000-00805f9b34fb',
       '0000ff00-0000-1000-8000-00805f9b34fb',
       '0000ae01-0000-1000-8000-00805f9b34fb'
@@ -136,7 +135,7 @@
       currentZone = zone;
 
       if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT";
+        status.innerText = "🌐 Mode TOUT (Toutes les zones)";
         status.style.color = "#ff9f1c";
         forgetBtn.style.display = 'none';
         return;
@@ -145,24 +144,32 @@
       forgetBtn.style.display = 'inline-block';
 
       if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté à ${zone.toUpperCase()}`;
+        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} (${deviceTypes[zone]})`;
         status.style.color = "#34c759";
         return;
       }
 
       try {
         if (!savedDevices[zone]) {
-          status.innerText = `🔍 Scan pour ${zone.toUpperCase()}...`;
+          status.innerText = `🔍 Sélectionner le ruban ${zone.toUpperCase()}...`;
           savedDevices[zone] = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: LOTUS_SERVICES
+            optionalServices: ALL_SERVICES
           });
         }
 
         status.innerText = `🔗 Connexion en cours...`;
         const server = await savedDevices[zone].gatt.connect();
-        const services = await server.getPrimaryServices();
+        const name = (savedDevices[zone].name || '').toUpperCase();
+        
+        // Détection du protocole selon le nom de la LED
+        if (name.includes('KS03') || name.includes('KEEPSMILE') || name.includes('TRIONES') || name.includes('LEDBLE')) {
+          deviceTypes[zone] = 'keepsmile';
+        } else {
+          deviceTypes[zone] = 'lotuslamp';
+        }
 
+        const services = await server.getPrimaryServices();
         savedCharacteristics[zone] = null;
 
         for (const service of services) {
@@ -179,10 +186,10 @@
         }
 
         if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté à ${zone.toUpperCase()} (${savedDevices[zone].name || 'KS03'})`;
+          status.innerText = `✅ Connecté : ${name || zone.toUpperCase()} [${deviceTypes[zone].toUpperCase()}]`;
           status.style.color = "#34c759";
         } else {
-          throw new Error("Caractéristique d'écriture introuvable");
+          throw new Error("Caractéristique introuvable");
         }
       } catch (e) {
         savedDevices[zone] = null;
@@ -199,7 +206,8 @@
       }
       savedDevices[currentZone] = null;
       savedCharacteristics[currentZone] = null;
-      status.innerText = `🔄 Réinitialisé. Sélectionnez à nouveau pour scanner.`;
+      deviceTypes[currentZone] = 'unknown';
+      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
       status.style.color = "#ff9f1c";
     }
 
@@ -210,8 +218,80 @@
       } catch(e) {
         try {
           await char.writeValue(payload);
-        } catch(err) {
-          console.error("Erreur d'envoi:", err);
+        } catch(err) {}
+      }
+    }
+
+    // --- GENERATEURS DE TRAMES PAR MARQUE ---
+
+    function getPowerPayload(zone, state) {
+      const type = deviceTypes[zone];
+      if (type === 'keepsmile') {
+        // Protocole Keepsmile / Triones / KS03
+        return [0xcc, state ? 0x23 : 0x24, 0x33];
+      } else {
+        // Protocole LotusLamp X
+        return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
+      }
+    }
+
+    function getColorPayload(zone, r, g, b) {
+      const type = deviceTypes[zone];
+      if (type === 'keepsmile') {
+        // Protocole Keepsmile / Triones (Trame 0x56)
+        return [0x56, r, g, b, 0x00, 0xf0, 0xaa];
+      } else {
+        // Protocole LotusLamp X
+        return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
+      }
+    }
+
+    function getBrightnessPayload(zone, val) {
+      const type = deviceTypes[zone];
+      if (type === 'keepsmile') {
+        // Luminosité pour Triones/Keepsmile (0xaa, level, 0x8b)
+        const pct = Math.round((parseInt(val) / 100) * 255);
+        return [0xbb, pct, 0x00, 0x44];
+      } else {
+        // Protocole LotusLamp X
+        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
+      }
+    }
+
+    // --- ENVOI DES COMMANDES ---
+
+    async function sendPower(state) {
+      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
+
+      if (currentZone === 'all') {
+        for (const zone of ['chambre', 'bureau', 'meuble']) {
+          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
+            await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
+          }
+        }
+      } else {
+        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+          await writeData(savedCharacteristics[currentZone], getPowerPayload(currentZone, state));
+        } else {
+          alert("Ruban non connecté.");
+        }
+      }
+    }
+
+    async function sendColor(r, g, b) {
+      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
+
+      if (currentZone === 'all') {
+        for (const zone of ['chambre', 'bureau', 'meuble']) {
+          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
+            await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
+          }
+        }
+      } else {
+        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+          await writeData(savedCharacteristics[currentZone], getColorPayload(currentZone, r, g, b));
+        } else {
+          alert("Ruban non connecté.");
         }
       }
     }
@@ -220,34 +300,23 @@
       const now = Date.now();
       if (now - lastBrightnessTime > 50) {
         lastBrightnessTime = now;
-        sendToCurrent(getBrightnessPayload(val));
-      }
-    }
+        if (!currentZone) return;
 
-    async function sendToCurrent(bytes) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      if (currentZone === 'all') {
-        for (const zone of ['chambre', 'bureau', 'meuble']) {
-          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-            await writeData(savedCharacteristics[zone], bytes);
+        if (currentZone === 'all') {
+          for (const zone of ['chambre', 'bureau', 'meuble']) {
+            if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
+              writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
+            }
+          }
+        } else {
+          if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+            writeData(savedCharacteristics[currentZone], getBrightnessPayload(currentZone, val));
           }
         }
-      } else {
-        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-          await writeData(savedCharacteristics[currentZone], bytes);
-        } else {
-          alert("Ruban non connecté. Cliquez à nouveau sur la zone.");
-        }
       }
     }
 
-    // Payloads
-    function getColorPayload(r, g, b) { return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef]; }
-    function getPowerPayload(state) { return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef]; }
-    // Trame alternative pour modèle KS03 / Triones
-    function getAltPowerPayload(state) { return [0xcc, state ? 0x23 : 0x24, 0x33]; }
-    function getBrightnessPayload(val) { return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef]; }
+    // --- MINUTEURS ---
 
     function startCountdown(durationMs) {
       if (activeTimer) clearInterval(activeTimer);
@@ -263,7 +332,7 @@
 
         if (remaining <= 0) {
           clearInterval(activeTimer);
-          sendToCurrent(getPowerPayload(false));
+          sendPower(false);
           timerDisplay.innerText = "⚡ LEDs éteintes !";
           document.getElementById('cancel-btn').style.display = 'none';
           nightOverlay.style.display = 'none';
