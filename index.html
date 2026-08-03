@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Multi-Marques</title>
+  <title>Télécommande LED Dual - Keepsmile & LotusLamp</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -21,6 +21,7 @@
     h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
+    .badge { display: block; font-size: 10px; opacity: 0.7; font-weight: normal; margin-top: 2px; }
     
     input[type="number"], input[type="time"] {
       width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
@@ -37,18 +38,30 @@
   </style>
 </head>
 <body>
-  <h2>💡 Contrôle Universal LED</h2>
+  <h2>💡 Contrôle LED Dédié</h2>
 
   <div class="card">
     <h3>🎯 Sélectionnez la Zone</h3>
     <div class="row">
-      <button id="zone-chambre" class="btn btn-zone" onclick="selectZone('chambre')">🛏️ Chambre</button>
-      <button id="zone-bureau" class="btn btn-zone" onclick="selectZone('bureau')">🖥️ Bureau</button>
-      <button id="zone-meuble" class="btn btn-zone" onclick="selectZone('meuble')">🛋️ Meuble</button>
-      <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">🌐 TOUT</button>
+      <button id="zone-chambre" class="btn btn-zone" onclick="selectZone('chambre')">
+        🛏️ Chambre
+        <span class="badge">(Keepsmile / KS03)</span>
+      </button>
+      <button id="zone-bureau" class="btn btn-zone" onclick="selectZone('bureau')">
+        🖥️ Bureau
+        <span class="badge">(LotusLamp X)</span>
+      </button>
+      <button id="zone-meuble" class="btn btn-zone" onclick="selectZone('meuble')">
+        🛋️ Meuble
+        <span class="badge">(LotusLamp X)</span>
+      </button>
+      <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">
+        🌐 TOUT
+        <span class="badge">(Toutes les zones)</span>
+      </button>
     </div>
     <div id="status">Sélectionnez une zone</div>
-    <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
+    <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier le ruban de cette zone</button>
   </div>
 
   <div class="card">
@@ -96,9 +109,15 @@
   </div>
 
   <script>
+    // Configuration fixe des protocoles par zone
+    const zoneProtocols = {
+      chambre: 'keepsmile', // Forcé pour KS03 / Keepsmile
+      bureau: 'lotuslamp',  // Forcé pour LotusLamp X
+      meuble: 'lotuslamp'   // Forcé pour LotusLamp X
+    };
+
     let savedDevices = { chambre: null, bureau: null, meuble: null };
     let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
-    let deviceTypes = { chambre: 'unknown', bureau: 'unknown', meuble: 'unknown' };
     
     let currentZone = null;
     let lastBrightnessTime = 0;
@@ -113,7 +132,7 @@
 
     const ALL_SERVICES = [
       '0000ffe0-0000-1000-8000-00805f9b34fb', // LotusLamp
-      '0000fff0-0000-1000-8000-00805f9b34fb', // Triones / Keepsmile
+      '0000fff0-0000-1000-8000-00805f9b34fb', // Keepsmile / Triones
       '0000ffd0-0000-1000-8000-00805f9b34fb',
       '0000ff00-0000-1000-8000-00805f9b34fb',
       '0000ae01-0000-1000-8000-00805f9b34fb'
@@ -135,7 +154,7 @@
       currentZone = zone;
 
       if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT (Toutes les zones)";
+        status.innerText = "🌐 Mode TOUT (Chambre + Bureau + Meuble)";
         status.style.color = "#ff9f1c";
         forgetBtn.style.display = 'none';
         return;
@@ -143,33 +162,26 @@
 
       forgetBtn.style.display = 'inline-block';
 
+      // Si déjà connecté et prêt
       if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} (${deviceTypes[zone]})`;
+        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} (${zoneProtocols[zone].toUpperCase()})`;
         status.style.color = "#34c759";
         return;
       }
 
       try {
         if (!savedDevices[zone]) {
-          status.innerText = `🔍 Sélectionner le ruban ${zone.toUpperCase()}...`;
+          status.innerText = `🔍 Appairer le ruban ${zone.toUpperCase()} (${zoneProtocols[zone].toUpperCase()})...`;
           savedDevices[zone] = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
             optionalServices: ALL_SERVICES
           });
         }
 
-        status.innerText = `🔗 Connexion en cours...`;
+        status.innerText = `🔗 Connexion à ${savedDevices[zone].name || zone}...`;
         const server = await savedDevices[zone].gatt.connect();
-        const name = (savedDevices[zone].name || '').toUpperCase();
-        
-        // Détection du protocole selon le nom de la LED
-        if (name.includes('KS03') || name.includes('KEEPSMILE') || name.includes('TRIONES') || name.includes('LEDBLE')) {
-          deviceTypes[zone] = 'keepsmile';
-        } else {
-          deviceTypes[zone] = 'lotuslamp';
-        }
-
         const services = await server.getPrimaryServices();
+
         savedCharacteristics[zone] = null;
 
         for (const service of services) {
@@ -186,15 +198,15 @@
         }
 
         if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté : ${name || zone.toUpperCase()} [${deviceTypes[zone].toUpperCase()}]`;
+          status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} [${zoneProtocols[zone].toUpperCase()}]`;
           status.style.color = "#34c759";
         } else {
-          throw new Error("Caractéristique introuvable");
+          throw new Error("Caractéristique Bluetooth introuvable.");
         }
       } catch (e) {
         savedDevices[zone] = null;
         savedCharacteristics[zone] = null;
-        status.innerText = "❌ Échec de connexion";
+        status.innerText = "❌ Connexion échouée";
         status.style.color = "#e71d36";
       }
     }
@@ -206,8 +218,7 @@
       }
       savedDevices[currentZone] = null;
       savedCharacteristics[currentZone] = null;
-      deviceTypes[currentZone] = 'unknown';
-      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
+      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} dissociée. Cliquez dessus pour ré-appairer.`;
       status.style.color = "#ff9f1c";
     }
 
@@ -222,43 +233,43 @@
       }
     }
 
-    // --- GENERATEURS DE TRAMES PAR MARQUE ---
+    // --- PROTOCOLES ET COMMANDES DÉDIÉS ---
 
     function getPowerPayload(zone, state) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
-        // Protocole Keepsmile / Triones / KS03
+      const proto = zoneProtocols[zone];
+      if (proto === 'keepsmile') {
+        // Trame Keepsmile / KS03
         return [0xcc, state ? 0x23 : 0x24, 0x33];
       } else {
-        // Protocole LotusLamp X
+        // Trame LotusLamp X
         return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
       }
     }
 
     function getColorPayload(zone, r, g, b) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
-        // Protocole Keepsmile / Triones (Trame 0x56)
+      const proto = zoneProtocols[zone];
+      if (proto === 'keepsmile') {
+        // Trame Couleurs Keepsmile / KS03
         return [0x56, r, g, b, 0x00, 0xf0, 0xaa];
       } else {
-        // Protocole LotusLamp X
+        // Trame Couleurs LotusLamp X
         return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
       }
     }
 
     function getBrightnessPayload(zone, val) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
-        // Luminosité pour Triones/Keepsmile (0xaa, level, 0x8b)
+      const proto = zoneProtocols[zone];
+      if (proto === 'keepsmile') {
+        // Trame Luminosité Keepsmile / KS03
         const pct = Math.round((parseInt(val) / 100) * 255);
         return [0xbb, pct, 0x00, 0x44];
       } else {
-        // Protocole LotusLamp X
+        // Trame Luminosité LotusLamp X
         return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
       }
     }
 
-    // --- ENVOI DES COMMANDES ---
+    // --- ENVOI ---
 
     async function sendPower(state) {
       if (!currentZone) return alert("Sélectionnez d'abord une zone !");
@@ -273,7 +284,7 @@
         if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
           await writeData(savedCharacteristics[currentZone], getPowerPayload(currentZone, state));
         } else {
-          alert("Ruban non connecté.");
+          alert("Ruban non connecté à cette zone.");
         }
       }
     }
@@ -291,7 +302,7 @@
         if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
           await writeData(savedCharacteristics[currentZone], getColorPayload(currentZone, r, g, b));
         } else {
-          alert("Ruban non connecté.");
+          alert("Ruban non connecté à cette zone.");
         }
       }
     }
