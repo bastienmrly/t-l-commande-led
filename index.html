@@ -3,259 +3,282 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contrôle LED Bluetooth</title>
+  <title>Télécommande LED - LotusLamp X</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
+    .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
+    .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
+    .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
+    .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
+    .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
+    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px; font-size: 14px; width: 48%; display: inline-block; margin-bottom: 8px; color: #fff; font-weight: bold; }
+    .btn-zone.active { border-color: #ff9f1c; background-color: #ff9f1c; color: #000; }
+    #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
+    #timer-display { font-size: 18px; color: #ff9f1c; font-weight: bold; margin-top: 10px; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; }
+    h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
+    .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
+    
+    input[type="number"], input[type="time"] {
+      width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
+      font-size: 16px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
     }
 
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
+    /* Overlay Mode Nuit Sombre */
+    #night-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.96); display: none; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 9999; color: #444;
     }
-
-    .card {
-      background: #1e293b;
-      padding: 30px;
-      border-radius: 24px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 1.5rem;
-      margin-bottom: 20px;
-      color: #38bdf8;
-    }
-
-    .status {
-      font-size: 0.9rem;
-      margin-bottom: 25px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      background: #334155;
-      display: inline-block;
-    }
-
-    .status.connected {
-      background: #059669;
-      color: #fff;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-bottom: 12px;
-    }
-
-    .btn-connect {
-      background: #0284c7;
-      color: white;
-    }
-
-    .btn-connect:active {
-      background: #0369a1;
-    }
-
-    .btn-off {
-      background: #ef4444;
-      color: white;
-    }
-
-    .btn-off:active {
-      background: #dc2626;
-    }
-
-    .color-section {
-      margin-top: 20px;
-      display: none;
-    }
-
-    .color-picker-container {
-      margin: 20px 0;
-    }
-
-    input[type="color"] {
-      -webkit-appearance: none;
-      border: none;
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      cursor: pointer;
-      background: none;
-    }
-
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-      border: 4px solid #ffffff33;
-      border-radius: 50%;
-    }
-
-    .preset-colors {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .color-btn {
-      height: 45px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-    }
+    #night-overlay h2 { font-size: 20px; color: #333; }
+    #night-overlay p { font-size: 14px; color: #222; margin-top: 10px; }
   </style>
 </head>
 <body>
+  <h2>💡 Contrôle LotusLamp X</h2>
 
   <div class="card">
-    <h1>💡 Télécommande LED</h1>
-    <div id="status" class="status">Déconnecté</div>
+    <h3>🎯 Sélectionnez la Zone</h3>
+    <div class="row">
+      <button id="zone-chambre" class="btn btn-zone" onclick="selectZone('chambre')">🛏️ Chambre</button>
+      <button id="zone-bureau" class="btn btn-zone" onclick="selectZone('bureau')">🖥️ Bureau</button>
+      <button id="zone-meuble" class="btn btn-zone" onclick="selectZone('meuble')">🛋️ Meuble</button>
+      <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">🌐 TOUT</button>
+    </div>
+    <div id="status">Sélectionnez une zone</div>
+  </div>
 
-    <button id="btnConnect" class="btn btn-connect" onclick="connecterBluetooth()">Se connecter au Ruban</button>
-    
-    <div id="controls" class="color-section">
-      <div class="color-picker-container">
-        <input type="color" id="colorPicker" value="#ff0000" onchange="changerCouleur(this.value)">
-      </div>
-
-      <div class="preset-colors">
-        <button class="color-btn" style="background: #ff0000;" onclick="changerCouleur('#ff0000')"></button>
-        <button class="color-btn" style="background: #00ff00;" onclick="changerCouleur('#00ff00')"></button>
-        <button class="color-btn" style="background: #0000ff;" onclick="changerCouleur('#0000ff')"></button>
-        <button class="color-btn" style="background: #ffffff;" onclick="changerCouleur('#ffffff')"></button>
-        <button class="color-btn" style="background: #ff00ff;" onclick="changerCouleur('#ff00ff')"></button>
-        <button class="color-btn" style="background: #ffff00;" onclick="changerCouleur('#ffff00')"></button>
-        <button class="color-btn" style="background: #00ffff;" onclick="changerCouleur('#00ffff')"></button>
-        <button class="color-btn" style="background: #ff8000;" onclick="changerCouleur('#ff8000')"></button>
-      </div>
-
-      <br>
-      <button class="btn btn-off" onclick="eteindre()">Éteindre</button>
+  <div class="card">
+    <div class="row">
+      <button class="btn btn-on" onclick="sendToCurrent(getPowerPayload(true))">ALLUMER</button>
+      <button class="btn btn-off" onclick="sendToCurrent(getPowerPayload(false))">ÉTEINDRE</button>
     </div>
   </div>
 
+  <div class="card">
+    <h3>🎨 Couleurs Principales</h3>
+    <div class="color-grid">
+      <div class="color-btn" style="background: #ff0000;" onclick="sendToCurrent(getColorPayload(255, 0, 0))"></div>
+      <div class="color-btn" style="background: #00ff00;" onclick="sendToCurrent(getColorPayload(0, 255, 0))"></div>
+      <div class="color-btn" style="background: #0000ff;" onclick="sendToCurrent(getColorPayload(0, 0, 255))"></div>
+      <div class="color-btn" style="background: #ffffff;" onclick="sendToCurrent(getColorPayload(255, 255, 255))"></div>
+      <div class="color-btn" style="background: #ffff00;" onclick="sendToCurrent(getColorPayload(255, 255, 0))"></div>
+      <div class="color-btn" style="background: #00ffff;" onclick="sendToCurrent(getColorPayload(0, 255, 255))"></div>
+      <div class="color-btn" style="background: #ff00ff;" onclick="sendToCurrent(getColorPayload(255, 0, 255))"></div>
+      <div class="color-btn" style="background: #ff7f00;" onclick="sendToCurrent(getColorPayload(255, 127, 0))"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>☀️ Luminosité</h3>
+    <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
+  </div>
+
+  <div class="card">
+    <h3>⏱️ Minuteur d'extinction</h3>
+    <input type="number" id="custom-minutes" placeholder="Durée en minutes (ex: 30)" min="1">
+    <button class="btn btn-timer" onclick="startTimerMinutes()">Démarrer le minuteur</button>
+
+    <h3 style="margin-top: 15px;">🕒 Extinction à heure précise</h3>
+    <input type="time" id="off-time">
+    <button class="btn btn-timer" onclick="startTimerExact()">Programmer l'heure</button>
+
+    <div id="timer-display"></div>
+    <button id="cancel-btn" class="btn btn-cancel" style="display:none;" onclick="cancelTimer()">Annuler le minuteur</button>
+  </div>
+
+  <!-- Écran noir masquant -->
+  <div id="night-overlay" onclick="cancelTimer()">
+    <h2 id="night-timer">⏳ Extinction en cours...</h2>
+    <p>Touchez l'écran pour annuler</p>
+  </div>
+
   <script>
-    let bluetoothDevice = null;
-    let ledCharacteristic = null;
+    let savedDevices = { chambre: null, bureau: null, meuble: null };
+    let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
+    let currentZone = null;
+    let lastBrightnessTime = 0;
+    let activeTimer = null;
+    let wakeLock = null;
 
-    // UUIDs universels standards (LotusLamp X / Triones / HappyLighting)
-    const SERVICE_UUID = 0xffe0; 
-    const CHARACTERISTIC_UUID = 0xffe1;
+    const status = document.getElementById('status');
+    const timerDisplay = document.getElementById('timer-display');
+    const nightOverlay = document.getElementById('night-overlay');
+    const nightTimer = document.getElementById('night-timer');
 
-    async function connecterBluetooth() {
-      const statusEl = document.getElementById('status');
-      const controlsEl = document.getElementById('controls');
-      const btnConnect = document.getElementById('btnConnect');
+    const LOTUS_SERVICES = [
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000ffd0-0000-1000-8000-00805f9b34fb'
+    ];
 
+    async function requestWakeLock() {
       try {
-        statusEl.innerText = "Recherche en cours...";
-
-        // Demande d'accès au périphérique Bluetooth
-        bluetoothDevice = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: [SERVICE_UUID, 0xfff0, 0x7b0c]
-        });
-
-        statusEl.innerText = "Connexion...";
-        const server = await bluetoothDevice.gatt.connect();
-        
-        // Recherche du service
-        let service;
-        try {
-          service = await server.getPrimaryService(SERVICE_UUID);
-        } catch(e) {
-          // Fallback pour certains boîtiers génériques
-          service = await server.getPrimaryService(0xfff0);
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
         }
-
-        // Recherche de la caractéristique de commande
-        try {
-          ledCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-        } catch(e) {
-          ledCharacteristic = await service.getCharacteristic(0xfff1);
-        }
-
-        statusEl.innerText = "Connecté : " + bluetoothDevice.name;
-        statusEl.classList.add('connected');
-        controlsEl.style.display = 'block';
-        btnConnect.style.display = 'none';
-
-        bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
-
-      } catch (error) {
-        console.error(error);
-        statusEl.innerText = "Erreur de connexion";
-        alert("Impossible de se connecter : " + error.message);
+      } catch (err) {
+        console.log("Wake Lock non supporté ou refusé.");
       }
     }
 
-    function onDisconnected() {
-      const statusEl = document.getElementById('status');
-      const controlsEl = document.getElementById('controls');
-      const btnConnect = document.getElementById('btnConnect');
-
-      statusEl.innerText = "Déconnecté";
-      statusEl.classList.remove('connected');
-      controlsEl.style.display = 'none';
-      btnConnect.style.display = 'block';
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release();
+        wakeLock = null;
+      }
     }
 
-    async function envoyerCommande(r, g, b) {
-      if (!ledCharacteristic) return;
+    async function selectZone(zone) {
+      document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`zone-${zone}`).classList.add('active');
+      currentZone = zone;
 
-      // Trame standard LotusLamp / HappyLighting : [0x7b, 0x04, 0x04, R, G, B, 0x00, 0xff, 0xbf]
-      // Alternative simplifiée Triones : [0xfa, 0x23, R, G, B, 0x00, 0x05]
-      const data = new Uint8Array([0x7b, 0x04, 0x04, r, g, b, 0x00, 0xff, 0xbf]);
+      if (zone === 'all') {
+        status.innerText = "🌐 Mode TOUT";
+        status.style.color = "#ff9f1c";
+        return;
+      }
+
+      if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
+        status.innerText = `✅ Connecté à ${zone.toUpperCase()}`;
+        status.style.color = "#34c759";
+        return;
+      }
 
       try {
-        await ledCharacteristic.writeValueWithoutResponse(data);
-      } catch (error) {
-        // Tentative de secours avec écriture standard si writeValueWithoutResponse échoue
+        if (!savedDevices[zone]) {
+          status.innerText = `🔍 Connexion ${zone.toUpperCase()}...`;
+          savedDevices[zone] = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: LOTUS_SERVICES
+          });
+        }
+
+        const server = await savedDevices[zone].gatt.connect();
+        const services = await server.getPrimaryServices();
+
+        for (const service of services) {
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const c of characteristics) {
+              if (c.properties.write || c.properties.writeWithoutResponse) {
+                savedCharacteristics[zone] = c;
+                break;
+              }
+            }
+          } catch(e) {}
+          if (savedCharacteristics[zone]) break;
+        }
+
+        if (savedCharacteristics[zone]) {
+          status.innerText = `✅ Connecté à ${zone.toUpperCase()}`;
+          status.style.color = "#34c759";
+        }
+      } catch (e) {
+        status.innerText = "❌ Connexion échouée";
+        status.style.color = "#e71d36";
+      }
+    }
+
+    async function writeData(char, bytes) {
+      try {
+        await char.writeValueWithoutResponse(new Uint8Array(bytes));
+      } catch(e) {
         try {
-          await ledCharacteristic.writeValue(data);
-        } catch (err) {
-          console.error("Erreur d'envoi :", err);
+          await char.writeValue(new Uint8Array(bytes));
+        } catch(err) {}
+      }
+    }
+
+    function handleBrightnessSlider(val) {
+      const now = Date.now();
+      if (now - lastBrightnessTime > 50) {
+        lastBrightnessTime = now;
+        sendToCurrent(getBrightnessPayload(val));
+      }
+    }
+
+    async function sendToCurrent(bytes) {
+      if (!currentZone) {
+        alert("Sélectionnez d'abord une zone !");
+        return;
+      }
+
+      if (currentZone === 'all') {
+        for (const zone of ['chambre', 'bureau', 'meuble']) {
+          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
+            await writeData(savedCharacteristics[zone], bytes);
+          }
+        }
+      } else {
+        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+          await writeData(savedCharacteristics[currentZone], bytes);
         }
       }
     }
 
-    function hexToRgb(hex) {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : { r: 0, g: 0, b: 0 };
+    function getColorPayload(r, g, b) { return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef]; }
+    function getPowerPayload(state) { return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef]; }
+    function getBrightnessPayload(val) { return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef]; }
+
+    function startCountdown(durationMs) {
+      if (activeTimer) clearInterval(activeTimer);
+      document.getElementById('cancel-btn').style.display = 'block';
+
+      requestWakeLock();
+      nightOverlay.style.display = 'flex'; // Active l'écran noir
+
+      const targetTime = Date.now() + durationMs;
+
+      activeTimer = setInterval(() => {
+        const remaining = targetTime - Date.now();
+
+        if (remaining <= 0) {
+          clearInterval(activeTimer);
+          sendToCurrent(getPowerPayload(false));
+          timerDisplay.innerText = "⚡ LEDs éteintes !";
+          document.getElementById('cancel-btn').style.display = 'none';
+          nightOverlay.style.display = 'none';
+          releaseWakeLock();
+        } else {
+          const m = Math.floor(remaining / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+          const txt = `⏳ Extinction dans ${m}m ${s}s`;
+          timerDisplay.innerText = txt;
+          nightTimer.innerText = txt;
+        }
+      }, 1000);
     }
 
-    function changerCouleur(hexColor) {
-      const rgb = hexToRgb(hexColor);
-      envoyerCommande(rgb.r, rgb.g, rgb.b);
+    function startTimerMinutes() {
+      const mins = parseInt(document.getElementById('custom-minutes').value);
+      if (isNaN(mins) || mins <= 0) return alert("Indiquez une durée valide.");
+      startCountdown(mins * 60000);
     }
 
-    function eteindre() {
-      envoyerCommande(0, 0, 0);
+    function startTimerExact() {
+      const timeVal = document.getElementById('off-time').value;
+      if (!timeVal) return alert("Sélectionnez une heure.");
+      
+      const [h, m] = timeVal.split(':');
+      const now = new Date();
+      const target = new Date();
+      target.setHours(parseInt(h), parseInt(m), 0, 0);
+      
+      if (target <= now) target.setDate(target.getDate() + 1);
+      
+      startCountdown(target.getTime() - now.getTime());
+    }
+
+    function cancelTimer() {
+      if (activeTimer) clearInterval(activeTimer);
+      timerDisplay.innerText = "Minuteur annulé.";
+      document.getElementById('cancel-btn').style.display = 'none';
+      nightOverlay.style.display = 'none';
+      releaseWakeLock();
     }
   </script>
 </body>
