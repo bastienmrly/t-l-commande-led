@@ -19,8 +19,6 @@
     #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
     .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
     h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
-    
-    /* Grille de couleurs fixes */
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
   </style>
@@ -40,7 +38,6 @@
     </div>
   </div>
 
-  <!-- Couleurs de base par boutons fixes -->
   <div class="card">
     <h3>🎨 Couleurs Principales</h3>
     <div class="color-grid">
@@ -61,11 +58,11 @@
   </div>
 
   <div class="card">
-    <h3>⏱️ Minuteur d'Extinction</h3>
+    <h3>⏱️ Minuteur Puce (Autonome)</h3>
     <div class="row">
-      <button class="btn btn-timer" onclick="setTimer(15)">15 Min</button>
-      <button class="btn btn-timer" onclick="setTimer(30)">30 Min</button>
-      <button class="btn btn-timer" onclick="setTimer(60)">1 Heure</button>
+      <button class="btn btn-timer" onclick="sendHardwareTimer(15)">15 Min</button>
+      <button class="btn btn-timer" onclick="sendHardwareTimer(30)">30 Min</button>
+      <button class="btn btn-timer" onclick="sendHardwareTimer(60)">1 Heure</button>
     </div>
   </div>
 
@@ -86,7 +83,6 @@
 
   <script>
     let gattCharacteristic = null;
-    let timerTimeout = null;
 
     async function connectBluetooth() {
       const status = document.getElementById('status');
@@ -111,7 +107,7 @@
           try {
             const characteristics = await service.getCharacteristics();
             for (const c of characteristics) {
-              if (c.properties.write || c.properties.writeWithoutResponse) {
+              if (c.properties.write || c.properties.writeWithout properties.writeWithoutResponse) {
                 gattCharacteristic = c;
                 break;
               }
@@ -123,6 +119,7 @@
         if (gattCharacteristic) {
           status.innerText = "✅ Connecté";
           status.style.color = "#34c759";
+          syncClock(); // Synchronise l'heure de la puce dès la connexion
         } else {
           status.innerText = "⚠️ Erreur canal";
         }
@@ -165,14 +162,31 @@
       sendPayload([0x7e, 0x05, 0x03, modeByte, 0x03, 0x00, 0xef]);
     }
 
-    function setTimer(minutes) {
-      if (timerTimeout) clearTimeout(timerTimeout);
-      const ms = minutes * 60 * 1000;
-      timerTimeout = setTimeout(() => {
-        sendPower(false);
-        alert("Minuteur terminé : Ruban LED éteint.");
-      }, ms);
-      alert(`Minuteur programmé pour s'éteindre dans ${minutes} minutes ! (Gardez la page ouverte dans Bluefy)`);
+    // Envoie l'heure actuelle à la puce pour qu'elle ait la bonne référence
+    function syncClock() {
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      const s = now.getSeconds();
+      const day = now.getDay() === 0 ? 7 : now.getDay();
+      sendPayload([0x7e, 0x07, 0x83, h, m, s, day, 0x00, 0xef]);
+    }
+
+    // Programme l'extinction directement dans la mémoire interne de la puce
+    function sendHardwareTimer(minutes) {
+      const now = new Date();
+      const future = new Date(now.getTime() + minutes * 60000);
+      const h = future.getHours();
+      const m = future.getMinutes();
+
+      // Synchronisation de l'horloge système
+      syncClock();
+      
+      // Envoi de la commande d'extinction automatique (Mode Timer Matériel ELK-BLEDOM)
+      setTimeout(() => {
+        sendPayload([0x7e, 0x08, 0x82, h, m, 0x00, 0x00, 0x00, 0xef]);
+        alert(`Timer de ${minutes} min enregistré dans le ruban ! Vous pouvez fermer l'application ou éteindre le téléphone.`);
+      }, 200);
     }
   </script>
 </body>
