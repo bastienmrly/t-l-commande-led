@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Directe & Minuteurs</title>
+  <title>Télécommande LED Directe & Minuteurs Fixés</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -23,7 +23,6 @@
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
     
-    /* Style des formulaires de temps */
     input[type="number"], input[type="time"] {
       width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
       font-size: 16px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
@@ -70,7 +69,6 @@
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
   </div>
 
-  <!-- NOUVELLE SECTION MINUTEUR / HEURE (Autonome sur la puce) -->
   <div class="card">
     <h3>⏱️ Extinction par Minuteur (Minutes)</h3>
     <input type="number" id="custom-minutes" placeholder="Ex: 45 (en minutes)" min="1" max="1440">
@@ -104,6 +102,8 @@
     let currentZone = null;
     let lastBrightnessTime = 0;
     const status = document.getElementById('status');
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     async function selectZone(zone) {
       document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
@@ -164,10 +164,10 @@
 
     async function writeData(char, bytes) {
       try {
-        await char.writeValueWithoutResponse(new Uint8Array(bytes));
+        await char.writeValueWithResponse(new Uint8Array(bytes));
       } catch(e) {
         try {
-          await char.writeValue(new Uint8Array(bytes));
+          await char.writeValueWithoutResponse(new Uint8Array(bytes));
         } catch(err) {}
       }
     }
@@ -204,23 +204,31 @@
     function getBrightnessPayload(val) { return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef]; }
     function getModePayload(modeByte) { return [0x7e, 0x05, 0x03, modeByte, 0x03, 0x00, 0xef]; }
 
-    // Envoi de l'heure actuelle pour synchroniser le processeur interne du ruban
+    // Synchronisation robuste de l'horloge système vers la puce LED
     async function syncChipTime() {
-      const now = new Date();
-      const day = now.getDay() === 0 ? 7 : now.getDay();
-      const payload = [0x7e, 0x07, 0x83, now.getHours(), now.getMinutes(), now.getSeconds(), day, 0x00, 0xef];
-      await sendToCurrent(payload);
+      const d = new Date();
+      const hrs = d.getHours();
+      const mins = d.getMinutes();
+      const secs = d.getSeconds();
+      const day = d.getDay() === 0 ? 7 : d.getDay(); // 1 = Lundi ... 7 = Dimanche
+
+      // Trame de synchro temps : 0x7e 0x07 0x83 HH MM SS DAY 0x00 0xef
+      const payloadTime = [0x7e, 0x07, 0x83, hrs, mins, secs, day, 0x00, 0xef];
+      await sendToCurrent(payloadTime);
+      await sleep(300); // Temps de pause obligatoire pour le contrôleur
     }
 
-    // Programmation autonome à une heure précise (HH:MM)
+    // Programmation matérielle de l'extinction
     async function setHardwareOffTime(hours, minutes) {
+      // Step 1: Synchro de l'heure actuelle du téléphone vers la puce
       await syncChipTime();
-      // Payload d'extinction automatique enregistrée en mémoire de puce (Action 0x00 = OFF)
-      const payload = [0x7e, 0x08, 0x82, parseInt(hours), parseInt(minutes), 0x00, 0x00, 0x00, 0xef];
-      await sendToCurrent(payload);
+
+      // Step 2: Envoi de la commande d'extinction (0x82 / Alarme 1 / Action OFF 0x00 / Tous les jours 0x7f)
+      // 0x7e, 0x08, 0x82, Heure, Minute, Secondes(00), Action(00=OFF), Jours(7F=Tous), 0xef
+      const payloadAlarm = [0x7e, 0x08, 0x82, parseInt(hours), parseInt(minutes), 0x00, 0x00, 0x7f, 0xef];
+      await sendToCurrent(payloadAlarm);
     }
 
-    // 1. Gestion du minuteur personnalisé
     async function programCustomTimer() {
       const mins = parseInt(document.getElementById('custom-minutes').value);
       if (isNaN(mins) || mins <= 0) {
@@ -229,11 +237,16 @@
       }
 
       const future = new Date(Date.now() + mins * 60000);
-      await setHardwareOffTime(future.getHours(), future.getMinutes());
-      alert(`Minuteur enregistré ! Le ruban s'éteindra à ${String(future.getHours()).padStart(2,'0')}:${String(future.getMinutes()).padStart(2,'0')} même si le téléphone est éteint.`);
+      const h = future.getHours();
+      const m = future.getMinutes();
+
+      status.innerText = "⏳ Programmation de la puce...";
+      await setHardwareOffTime(h, m);
+      
+      status.innerText = `✅ Programmé à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      alert(`Puce configurée !\nExtinction prévue à ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}.\nVous pouvez éteindre le téléphone.`);
     }
 
-    // 2. Gestion de l'heure précise
     async function programExactTime() {
       const timeVal = document.getElementById('off-time').value;
       if (!timeVal) {
@@ -242,8 +255,12 @@
       }
 
       const [hours, minutes] = timeVal.split(':');
+      
+      status.innerText = "⏳ Programmation de la puce...";
       await setHardwareOffTime(hours, minutes);
-      alert(`Extinction programmée à ${hours}:${minutes} ! Vous pouvez éteindre votre téléphone.`);
+
+      status.innerText = `✅ Programmé à ${hours}:${minutes}`;
+      alert(`Puce configurée !\nExtinction prévue à ${hours}:${minutes}.\nVous pouvez éteindre le téléphone.`);
     }
   </script>
 </body>
