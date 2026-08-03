@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Isolation Keepsmile (KS03)</title>
+  <title>Test Ultime KS03~F400C1</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
+    body { font-family: -apple-system, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
-    .btn-connect { background-color: #007aff; font-size: 18px; }
+    .btn-connect { background-color: #007aff; font-size: 18px; color: #fff; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
     #status { margin-top: 10px; font-weight: bold; font-size: 15px; color: #ff9f1c; }
-    #logs { background: #000; color: #00ff00; font-family: monospace; font-size: 11px; text-align: left; padding: 10px; border-radius: 8px; height: 120px; overflow-y: auto; margin-top: 15px; }
+    #logs { background: #000; color: #00ff00; font-family: monospace; font-size: 11px; text-align: left; padding: 10px; border-radius: 8px; height: 150px; overflow-y: auto; margin-top: 15px; }
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
     .row { display: flex; justify-content: space-between; }
@@ -20,10 +20,10 @@
 </head>
 <body>
 
-  <h2>🧪 Test Keepsmile KS03</h2>
+  <h2>💡 Test Ultime KS03~F400C1</h2>
 
   <div class="card">
-    <button class="btn btn-connect" onclick="connectKS03()">🔗 Se connecter au KS03</button>
+    <button class="btn btn-connect" onclick="connectKS03()">🔗 Connecter KS03~F400C1</button>
     <div id="status">Statut : Non connecté</div>
   </div>
 
@@ -45,14 +45,15 @@
   </div>
 
   <div class="card">
-    <h3>📜 Console de Debug</h3>
-    <div id="logs">Prêt à tester...<br></div>
+    <h3>📜 Console Logs</h3>
+    <div id="logs">Prêt à tester le KS03...<br></div>
   </div>
 
   <script>
     let device = null;
     let writeChar = null;
-    let keepAliveInterval = null;
+    let notifyChar = null;
+    let pingTimer = null;
 
     const statusDiv = document.getElementById('status');
     const logsDiv = document.getElementById('logs');
@@ -66,66 +67,71 @@
     async function connectKS03() {
       try {
         log("Recherche du KS03...");
-        statusDiv.innerText = "🔍 Recherche en cours...";
+        statusDiv.innerText = "🔍 Connexion en cours...";
         statusDiv.style.color = "#ff9f1c";
 
-        // Demande d'accès très large spécifiquement pour Bluefy
         device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
+          filters: [{ namePrefix: 'KS' }, { namePrefix: 'KS03' }],
           optionalServices: [
             '0000fff0-0000-1000-8000-00805f9b34fb',
             '0000ffe0-0000-1000-8000-00805f9b34fb',
-            '0000ffd0-0000-1000-8000-00805f9b34fb',
-            '0000ff00-0000-1000-8000-00805f9b34fb'
+            '0000ffd0-0000-1000-8000-00805f9b34fb'
           ]
         });
 
-        device.addEventListener('gattserverdisconnected', onDisconnected);
+        device.addEventListener('gattserverdisconnected', () => {
+          log("⚠️ DÉCONNEXION DÉTECTÉE !");
+          statusDiv.innerText = "❌ Déconnecté par le ruban";
+          statusDiv.style.color = "#e71d36";
+          if (pingTimer) clearInterval(pingTimer);
+        });
 
-        log(`Appareil sélectionné : ${device.name || 'Inconnu'}`);
-        log("Connexion au serveur GATT...");
+        log(`Appareil : ${device.name}`);
         const server = await device.gatt.connect();
+        log("GATT Connecté ! Analyse des services...");
 
-        log("Analyse des services...");
         const services = await server.getPrimaryServices();
-        log(`${services.length} service(s) trouvé(s)`);
 
         writeChar = null;
+        notifyChar = null;
 
-        // Parcours complet pour trouver la meilleure caractéristique d'écriture
         for (const service of services) {
-          log(`Analyse service : ${service.uuid}`);
+          log(`Service : ${service.uuid}`);
           try {
             const characteristics = await service.getCharacteristics();
             for (const c of characteristics) {
-              log(` -> Caractéristique : ${c.uuid} [W:${c.properties.write}, WNoResp:${c.properties.writeWithoutResponse}, Notify:${c.properties.notify}]`);
+              log(` -> Char: ${c.uuid} [Write:${c.properties.write || c.properties.writeWithoutResponse}, Notify:${c.properties.notify}]`);
 
-              // Tenter de s'abonner aux notifications si possible (indispensable sur certaines puces KS03)
+              // Caractéristique de notification (CRUCIAL pour verrouiller la connexion sous iOS)
               if (c.properties.notify || c.properties.indicate) {
-                try {
-                  await c.startNotifications();
-                  log(`    -> Notifications activées sur ${c.uuid}`);
-                } catch(e) {}
+                notifyChar = c;
               }
 
-              // Priorité aux caractéristiques d'écriture
+              // Caractéristique d'écriture
               if (c.properties.writeWithoutResponse || c.properties.write) {
                 if (!writeChar || c.uuid.includes('fff3') || c.uuid.includes('ffe9')) {
                   writeChar = c;
                 }
               }
             }
+          } catch(e) {}
+        }
+
+        // Activation impérative des notifications pour empêcher la déconnexion après 2s
+        if (notifyChar) {
+          try {
+            await notifyChar.startNotifications();
+            log("✅ Notifications activées (Maintien iOS actif)");
           } catch(e) {
-            log(` Erreur lecture service : ${e.message}`);
+            log("⚠️ Échec activation notifications, suite...");
           }
         }
 
         if (writeChar) {
-          log(`✅ Caractéristique d'écriture retenue : ${writeChar.uuid}`);
-          statusDiv.innerText = `✅ Connecté : ${device.name || 'KS03'}`;
+          log(`🎯 Caractéristique écriture : ${writeChar.uuid}`);
+          statusDiv.innerText = `✅ Connecté : ${device.name}`;
           statusDiv.style.color = "#34c759";
 
-          // Lancement immédiat du maintien de connexion (Ping/Keep-Alive)
           startKeepAlive();
         } else {
           throw new Error("Aucune caractéristique d'écriture trouvée.");
@@ -133,59 +139,50 @@
 
       } catch (err) {
         log(`❌ Erreur : ${err.message}`);
-        statusDiv.innerText = "❌ Échec de connexion";
+        statusDiv.innerText = "❌ Échec connexion";
         statusDiv.style.color = "#e71d36";
       }
     }
 
     function startKeepAlive() {
-      if (keepAliveInterval) clearInterval(keepAliveInterval);
+      if (pingTimer) clearInterval(pingTimer);
 
-      log("⚡ Envoi de la trame initiale d'accroche...");
-      // Envoi direct de la commande Keep-Alive
-      sendRawBytes([0xef, 0x01, 0x77]);
+      // Trame d'accroche KS03 initiale
+      sendPayload([0xef, 0x01, 0x77]);
 
-      // Envoie un signal toutes les 1.2 secondes pour empêcher l'iPhone/Bluefy de fermer le canal
-      keepAliveInterval = setInterval(() => {
+      // Signal de maintien
+      pingTimer = setInterval(() => {
         if (device && device.gatt.connected && writeChar) {
-          sendRawBytes([0xef, 0x01, 0x77]);
+          sendPayload([0xef, 0x01, 0x77]);
         } else {
-          clearInterval(keepAliveInterval);
+          clearInterval(pingTimer);
         }
-      }, 1200);
+      }, 1000);
     }
 
-    async function sendRawBytes(bytes) {
+    async function sendPayload(bytes) {
       if (!writeChar) return;
-      const data = new Uint8Array(bytes);
       try {
+        const payload = new Uint8Array(bytes);
         if (writeChar.properties.writeWithoutResponse) {
-          await writeChar.writeValueWithoutResponse(data);
+          await writeChar.writeValueWithoutResponse(payload);
         } else {
-          await writeChar.writeValue(data);
+          await writeChar.writeValue(payload);
         }
-      } catch (e) {
-        // En cas d'échec silencieux
-      }
-    }
-
-    function onDisconnected() {
-      log("⚠️ Déconnexion détectée par l'appareil !");
-      statusDiv.innerText = "⚠️ Déconnecté !";
-      statusDiv.style.color = "#ff9f1c";
-      if (keepAliveInterval) clearInterval(keepAliveInterval);
+      } catch(e) {}
     }
 
     async function sendPower(state) {
-      log(`Commande Power : ${state ? 'ON' : 'OFF'}`);
-      // Protocole trame Keepsmile : [0xCC, 0x23 (ON) / 0x24 (OFF), 0x33]
-      await sendRawBytes([0xcc, state ? 0x23 : 0x24, 0x33]);
+      log(`Power ${state ? 'ON' : 'OFF'}`);
+      // Envoie la trame Keepsmile standard + la trame BLEDOM au cas où
+      await sendPayload([0xcc, state ? 0x23 : 0x24, 0x33]);
+      await sendPayload([0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef]);
     }
 
     async function sendColor(r, g, b) {
-      log(`Commande Couleur : R=${r} G=${g} B=${b}`);
-      // Protocole couleur Keepsmile : [0x56, R, G, B, 0x00, 0xF0, 0xAA]
-      await sendRawBytes([0x56, r, g, b, 0x00, 0xf0, 0xaa]);
+      log(`Couleur R:${r} G:${g} B:${b}`);
+      await sendPayload([0x56, r, g, b, 0x00, 0xf0, 0xaa]);
+      await sendPayload([0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef]);
     }
   </script>
 </body>
