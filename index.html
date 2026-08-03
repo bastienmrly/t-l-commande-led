@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Dual - Keepsmile & LotusLamp</title>
+  <title>Télécommande LED Dual - Anti-Déconnexion</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -38,7 +38,7 @@
   </style>
 </head>
 <body>
-  <h2>💡 Contrôle LED Dédié</h2>
+  <h2>💡 Contrôle LED Dual</h2>
 
   <div class="card">
     <h3>🎯 Sélectionnez la Zone</h3>
@@ -109,15 +109,15 @@
   </div>
 
   <script>
-    // Configuration fixe des protocoles par zone
     const zoneProtocols = {
-      chambre: 'keepsmile', // Forcé pour KS03 / Keepsmile
-      bureau: 'lotuslamp',  // Forcé pour LotusLamp X
-      meuble: 'lotuslamp'   // Forcé pour LotusLamp X
+      chambre: 'keepsmile',
+      bureau: 'lotuslamp',
+      meuble: 'lotuslamp'
     };
 
     let savedDevices = { chambre: null, bureau: null, meuble: null };
     let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
+    let keepAliveTimers = { chambre: null, bureau: null, meuble: null };
     
     let currentZone = null;
     let lastBrightnessTime = 0;
@@ -130,12 +130,11 @@
     const nightTimer = document.getElementById('night-timer');
     const forgetBtn = document.getElementById('forget-btn');
 
-    const ALL_SERVICES = [
-      '0000ffe0-0000-1000-8000-00805f9b34fb', // LotusLamp
-      '0000fff0-0000-1000-8000-00805f9b34fb', // Keepsmile / Triones
-      '0000ffd0-0000-1000-8000-00805f9b34fb',
-      '0000ff00-0000-1000-8000-00805f9b34fb',
-      '0000ae01-0000-1000-8000-00805f9b34fb'
+    // UUIDs spécifiques Triones/KS03 et LotusLamp
+    const TARGET_UUIDS = [
+      '0000fff0-0000-1000-8000-00805f9b34fb', // Keepsmile Service principal
+      '0000ffe0-0000-1000-8000-00805f9b34fb', // LotusLamp Service principal
+      '0000ffd0-0000-1000-8000-00805f9b34fb'
     ];
 
     async function requestWakeLock() {
@@ -154,7 +153,7 @@
       currentZone = zone;
 
       if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT (Chambre + Bureau + Meuble)";
+        status.innerText = "🌐 Mode TOUT";
         status.style.color = "#ff9f1c";
         forgetBtn.style.display = 'none';
         return;
@@ -162,7 +161,6 @@
 
       forgetBtn.style.display = 'inline-block';
 
-      // Si déjà connecté et prêt
       if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
         status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} (${zoneProtocols[zone].toUpperCase()})`;
         status.style.color = "#34c759";
@@ -171,58 +169,107 @@
 
       try {
         if (!savedDevices[zone]) {
-          status.innerText = `🔍 Appairer le ruban ${zone.toUpperCase()} (${zoneProtocols[zone].toUpperCase()})...`;
+          status.innerText = `🔍 Sélectionner ${zone.toUpperCase()} (${zoneProtocols[zone].toUpperCase()})...`;
           savedDevices[zone] = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: ALL_SERVICES
+            optionalServices: TARGET_UUIDS
           });
+
+          // Écouter la déconnexion inattendue
+          savedDevices[zone].addEventListener('gattserverdisconnected', () => onDisconnected(zone));
         }
 
-        status.innerText = `🔗 Connexion à ${savedDevices[zone].name || zone}...`;
+        status.innerText = `🔗 Connexion rapide à ${savedDevices[zone].name || zone}...`;
         const server = await savedDevices[zone].gatt.connect();
-        const services = await server.getPrimaryServices();
 
-        savedCharacteristics[zone] = null;
-
-        for (const service of services) {
-          try {
-            const characteristics = await service.getCharacteristics();
-            for (const c of characteristics) {
-              if (c.properties.writeWithoutResponse || c.properties.write) {
-                savedCharacteristics[zone] = c;
-                break;
-              }
-            }
-          } catch(e) {}
-          if (savedCharacteristics[zone]) break;
-        }
+        // Découverte accélérée ciblée
+        savedCharacteristics[zone] = await findCharacteristic(server, zoneProtocols[zone]);
 
         if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} [${zoneProtocols[zone].toUpperCase()}]`;
+          status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()}`;
           status.style.color = "#34c759";
+
+          // ⚡ TRÈS IMPORTANT : Envoi immédiat pour "réveiller" le KS03 + Keep-Alive
+          startKeepAlive(zone);
         } else {
-          throw new Error("Caractéristique Bluetooth introuvable.");
+          throw new Error("Caractéristique non disponible.");
         }
       } catch (e) {
+        console.error(e);
         savedDevices[zone] = null;
         savedCharacteristics[zone] = null;
-        status.innerText = "❌ Connexion échouée";
+        status.innerText = "❌ Connexion interrompue. Réessayez.";
         status.style.color = "#e71d36";
+      }
+    }
+
+    // Recherche accélérée de caractéristique
+    async function findCharacteristic(server, protocol) {
+      const services = await server.getPrimaryServices();
+      for (const service of services) {
+        try {
+          const characteristics = await service.getCharacteristics();
+          for (const c of characteristics) {
+            if (c.properties.writeWithoutResponse || c.properties.write) {
+              // Sur KS03 / Triones, la caractéristique d'écriture est généralement FFF3 ou FFE9
+              if (protocol === 'keepsmile' && (c.uuid.includes('fff3') || c.uuid.includes('ffe9'))) {
+                return c;
+              }
+              if (protocol === 'lotuslamp' && (c.uuid.includes('ffe1') || c.uuid.includes('ffd1'))) {
+                return c;
+              }
+              // Fallback
+              return c;
+            }
+          }
+        } catch(e) {}
+      }
+      return null;
+    }
+
+    // Maintien de connexion (Keep-Alive)
+    function startKeepAlive(zone) {
+      if (keepAliveTimers[zone]) clearInterval(keepAliveTimers[zone]);
+
+      // Envoi initial d'une trame neutre pour éviter le timeout de 2 sec
+      sendPowerPayloadSilent(zone, true);
+
+      // Envoi périodique léger
+      keepAliveTimers[zone] = setInterval(() => {
+        if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
+          // Lecture du statut ou petit ping sans changer la lumière
+          if (zoneProtocols[zone] === 'keepsmile') {
+            writeData(savedCharacteristics[zone], [0xef, 0x01, 0x77]);
+          }
+        } else {
+          clearInterval(keepAliveTimers[zone]);
+        }
+      }, 3000);
+    }
+
+    function onDisconnected(zone) {
+      if (keepAliveTimers[zone]) clearInterval(keepAliveTimers[zone]);
+      savedCharacteristics[zone] = null;
+      if (currentZone === zone) {
+        status.innerText = `⚠️ Déconnecté de ${zone.toUpperCase()}. Cliquez dessus pour reconnecter.`;
+        status.style.color = "#ff9f1c";
       }
     }
 
     function forgetCurrentZone() {
       if (!currentZone || currentZone === 'all') return;
+      if (keepAliveTimers[currentZone]) clearInterval(keepAliveTimers[currentZone]);
       if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
         savedDevices[currentZone].gatt.disconnect();
       }
       savedDevices[currentZone] = null;
       savedCharacteristics[currentZone] = null;
-      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} dissociée. Cliquez dessus pour ré-appairer.`;
+      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée.`;
       status.style.color = "#ff9f1c";
     }
 
     async function writeData(char, bytes) {
+      if (!char) return;
       const payload = new Uint8Array(bytes);
       try {
         await char.writeValueWithoutResponse(payload);
@@ -238,10 +285,8 @@
     function getPowerPayload(zone, state) {
       const proto = zoneProtocols[zone];
       if (proto === 'keepsmile') {
-        // Trame Keepsmile / KS03
         return [0xcc, state ? 0x23 : 0x24, 0x33];
       } else {
-        // Trame LotusLamp X
         return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
       }
     }
@@ -249,10 +294,8 @@
     function getColorPayload(zone, r, g, b) {
       const proto = zoneProtocols[zone];
       if (proto === 'keepsmile') {
-        // Trame Couleurs Keepsmile / KS03
         return [0x56, r, g, b, 0x00, 0xf0, 0xaa];
       } else {
-        // Trame Couleurs LotusLamp X
         return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
       }
     }
@@ -260,16 +303,18 @@
     function getBrightnessPayload(zone, val) {
       const proto = zoneProtocols[zone];
       if (proto === 'keepsmile') {
-        // Trame Luminosité Keepsmile / KS03
         const pct = Math.round((parseInt(val) / 100) * 255);
         return [0xbb, pct, 0x00, 0x44];
       } else {
-        // Trame Luminosité LotusLamp X
         return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
       }
     }
 
-    // --- ENVOI ---
+    async function sendPowerPayloadSilent(zone, state) {
+      if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
+        await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
+      }
+    }
 
     async function sendPower(state) {
       if (!currentZone) return alert("Sélectionnez d'abord une zone !");
@@ -284,7 +329,7 @@
         if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
           await writeData(savedCharacteristics[currentZone], getPowerPayload(currentZone, state));
         } else {
-          alert("Ruban non connecté à cette zone.");
+          alert("Ruban non connecté. Cliquez sur la zone pour vous reconnecter.");
         }
       }
     }
@@ -302,7 +347,7 @@
         if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
           await writeData(savedCharacteristics[currentZone], getColorPayload(currentZone, r, g, b));
         } else {
-          alert("Ruban non connecté à cette zone.");
+          alert("Ruban non connecté.");
         }
       }
     }
@@ -326,8 +371,6 @@
         }
       }
     }
-
-    // --- MINUTEURS ---
 
     function startCountdown(durationMs) {
       if (activeTimer) clearInterval(activeTimer);
