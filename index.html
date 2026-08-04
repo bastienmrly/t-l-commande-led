@@ -22,6 +22,10 @@
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
     
+    .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .btn-theme { background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; }
+    .btn-theme:active { transform: scale(0.97); }
+
     input[type="number"], input[type="time"] {
       width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
       font-size: 16px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
@@ -55,6 +59,17 @@
     <div class="row">
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
       <button class="btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎭 Thèmes & Ambiances</h3>
+    <div class="theme-grid">
+      <button class="btn-theme" style="border-left: 4px solid #a855f7;" onclick="applyPresetTheme('gaming')">🎮 Gaming</button>
+      <button class="btn-theme" style="border-left: 4px solid #38bdf8;" onclick="applyPresetTheme('travail')">💼 Travail</button>
+      <button class="btn-theme" style="border-left: 4px solid #f97316;" onclick="applyPresetTheme('sommeil')">🌙 Sommeil</button>
+      <button class="btn-theme" style="border-left: 4px solid #2ec4b6;" onclick="sendAnimTheme(0x87, 0x80)">🌈 Rainbow</button>
+      <button class="btn-theme" style="border-left: 4px solid #e71d36; grid-column: span 2;" onclick="sendAnimTheme(0x88, 0x87)">⚡ Flash Mode</button>
     </div>
   </div>
 
@@ -227,10 +242,8 @@
     function getPowerPayload(zone, state) {
       const type = deviceTypes[zone];
       if (type === 'keepsmile') {
-        // Protocole Keepsmile / Triones / KS03
         return [0xcc, state ? 0x23 : 0x24, 0x33];
       } else {
-        // Protocole LotusLamp X
         return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
       }
     }
@@ -238,10 +251,8 @@
     function getColorPayload(zone, r, g, b) {
       const type = deviceTypes[zone];
       if (type === 'keepsmile') {
-        // Protocole Keepsmile / Triones (Trame 0x56)
         return [0x56, r, g, b, 0x00, 0xf0, 0xaa];
       } else {
-        // Protocole LotusLamp X
         return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
       }
     }
@@ -249,12 +260,19 @@
     function getBrightnessPayload(zone, val) {
       const type = deviceTypes[zone];
       if (type === 'keepsmile') {
-        // Luminosité pour Triones/Keepsmile (0xaa, level, 0x8b)
         const pct = Math.round((parseInt(val) / 100) * 255);
         return [0xbb, pct, 0x00, 0x44];
       } else {
-        // Protocole LotusLamp X
         return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
+      }
+    }
+
+    function getAnimPayload(zone, lotusMode, keepsmileMode) {
+      const type = deviceTypes[zone];
+      if (type === 'keepsmile') {
+        return [0xbb, keepsmileMode, 0x03, 0x44];
+      } else {
+        return [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0xef];
       }
     }
 
@@ -293,6 +311,34 @@
         } else {
           alert("Ruban non connecté.");
         }
+      }
+    }
+
+    async function sendAnimTheme(lotusMode, keepsmileMode) {
+      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
+
+      if (currentZone === 'all') {
+        for (const zone of ['chambre', 'bureau', 'meuble']) {
+          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
+            await writeData(savedCharacteristics[zone], getAnimPayload(zone, lotusMode, keepsmileMode));
+          }
+        }
+      } else {
+        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+          await writeData(savedCharacteristics[currentZone], getAnimPayload(currentZone, lotusMode, keepsmileMode));
+        } else {
+          alert("Ruban non connecté.");
+        }
+      }
+    }
+
+    function applyPresetTheme(type) {
+      if (type === 'gaming') {
+        sendColor(147, 51, 234); // Violet néon / Gaming
+      } else if (type === 'travail') {
+        sendColor(230, 245, 255); // Blanc froid intense
+      } else if (type === 'sommeil') {
+        sendColor(40, 5, 0); // Ambre tamisé
       }
     }
 
