@@ -3,28 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Multi-Marques</title>
+  <title>Télécommande LED & Audio Multi-Zones</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 400px; margin: 0 auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 420px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
     .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
     .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
-    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px; font-size: 13px; width: 48%; display: inline-block; margin-bottom: 8px; color: #fff; font-weight: bold; }
+    
+    .zone-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 10px; font-size: 12px; border-radius: 10px; color: #fff; font-weight: bold; cursor: pointer; }
     .btn-zone.active { border-color: #ff9f1c; background-color: #ff9f1c; color: #000; }
+    
     .btn-forget { background-color: transparent; border: 1px dashed #e71d36; color: #e71d36; font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-top: 8px; display: none; }
-    #status { margin-top: 10px; font-weight: bold; font-size: 14px; color: #ff9f1c; }
+    #status { margin-top: 10px; font-weight: bold; font-size: 13px; color: #ff9f1c; }
     #timer-display { font-size: 18px; color: #ff9f1c; font-weight: bold; margin-top: 10px; }
     .row { display: flex; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; }
-    h3 { margin-top: 5px; margin-bottom: 12px; font-size: 16px; color: #aaa; text-align: left; }
+    h3 { margin-top: 5px; margin-bottom: 12px; font-size: 15px; color: #aaa; text-align: left; }
     .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
     .color-btn { height: 45px; border-radius: 10px; border: 2px solid #333; cursor: pointer; }
     
     .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
     .btn-theme { background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer; }
     .btn-theme:active { transform: scale(0.97); }
+
+    .btn-audio { background-color: #a855f7; width: 48%; display: inline-block; margin-bottom: 6px; }
+    .btn-audio-sub { background-color: #3b82f6; width: 100%; margin-top: 6px; }
 
     input[type="number"], input[type="time"] {
       width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
@@ -41,16 +47,20 @@
   </style>
 </head>
 <body>
-  <h2>💡 Contrôle Universal LED</h2>
+  <h2>💡 Contrôle Universal LED & Audio</h2>
 
   <div class="card">
-    <h3>🎯 Sélectionnez la Zone</h3>
-    <div class="row">
-      <button id="zone-chambre" class="btn btn-zone" onclick="selectZone('chambre')">🛏️ Chambre</button>
-      <button id="zone-bureau" class="btn btn-zone" onclick="selectZone('bureau')">🖥️ Bureau</button>
-      <button id="zone-meuble" class="btn btn-zone" onclick="selectZone('meuble')">🛋️ Meuble</button>
-      <button id="zone-all" class="btn btn-zone" onclick="selectZone('all')">🌐 TOUT</button>
+    <h3>🎯 Sélectionnez la Zone LED</h3>
+    <div class="zone-grid">
+      <button id="zone-chambre" class="btn-zone" onclick="selectZone('chambre')">🛏️ Chambre</button>
+      <button id="zone-bureau" class="btn-zone" onclick="selectZone('bureau')">🖥️ Bureau</button>
+      <button id="zone-meuble" class="btn-zone" onclick="selectZone('meuble')">🛋️ Meuble</button>
+      <button id="zone-arme" class="btn-zone" onclick="selectZone('arme')">⚔️ Étage Arme</button>
+      <button id="zone-plante" class="btn-zone" onclick="selectZone('plante')">🪴 Étage Plante</button>
+      <button id="zone-jeux" class="btn-zone" onclick="selectZone('jeux')">🎮 Étage Jeux</button>
     </div>
+    <button id="zone-all" class="btn-zone" style="width: 100%; margin-top: 4px;" onclick="selectZone('all')">🌐 TOUTES LES ZONES</button>
+    
     <div id="status">Sélectionnez une zone</div>
     <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
   </div>
@@ -60,6 +70,22 @@
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
       <button class="btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
     </div>
+  </div>
+
+  <div class="card">
+    <h3>🔊 Enceinte (Ultimea Aura A40)</h3>
+    <p style="font-size: 12px; color: #888; margin-top: -8px; margin-bottom: 12px;">Connectez d'abord votre appareil en Bluetooth à l'enceinte.</p>
+    
+    <div class="row">
+      <button class="btn btn-audio" onclick="toggleAudioDemo()">🎵 Test Audio</button>
+      <button class="btn btn-audio" style="background-color: #64748b;" onclick="stopAudioDemo()">⏹️ Stopper</button>
+    </div>
+    
+    <button class="btn btn-audio-sub" onclick="playBassTest()">🔊 Test Subwoofer (Basses 60Hz)</button>
+    
+    <h3 style="margin-top: 15px;">🔉 Volume Média Web</h3>
+    <input type="range" id="audio-volume" min="0" max="100" value="80" style="width:100%" oninput="changeAudioVolume(this.value)">
+    <audio id="demo-audio" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
   </div>
 
   <div class="card">
@@ -88,7 +114,7 @@
   </div>
 
   <div class="card">
-    <h3>☀️ Luminosité</h3>
+    <h3>☀️ Luminosité LED</h3>
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
   </div>
 
@@ -111,42 +137,44 @@
   </div>
 
   <script>
-    let savedDevices = { chambre: null, bureau: null, meuble: null };
-    let savedCharacteristics = { chambre: null, bureau: null, meuble: null };
-    let deviceTypes = { chambre: 'unknown', bureau: 'unknown', meuble: 'unknown' };
+    const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
+    
+    let savedDevices = {};
+    let savedCharacteristics = {};
+    let deviceTypes = {};
+    
+    ALL_ZONES.forEach(z => {
+      savedDevices[z] = null;
+      savedCharacteristics[z] = null;
+      deviceTypes[z] = 'unknown';
+    });
     
     let currentZone = null;
     let lastBrightnessTime = 0;
     let activeTimer = null;
     let wakeLock = null;
+    let audioCtx = null;
+    let bassOscillator = null;
 
     const status = document.getElementById('status');
     const timerDisplay = document.getElementById('timer-display');
     const nightOverlay = document.getElementById('night-overlay');
     const nightTimer = document.getElementById('night-timer');
     const forgetBtn = document.getElementById('forget-btn');
+    const demoAudio = document.getElementById('demo-audio');
 
     const ALL_SERVICES = [
-      '0000ffe0-0000-1000-8000-00805f9b34fb', // LotusLamp
-      '0000fff0-0000-1000-8000-00805f9b34fb', // Triones / Keepsmile
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000fff0-0000-1000-8000-00805f9b34fb',
       '0000ffd0-0000-1000-8000-00805f9b34fb',
       '0000ff00-0000-1000-8000-00805f9b34fb',
       '0000ae01-0000-1000-8000-00805f9b34fb'
     ];
 
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-      } catch (err) {}
-    }
-
-    function releaseWakeLock() {
-      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-    }
-
     async function selectZone(zone) {
       document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(`zone-${zone}`).classList.add('active');
+      const targetBtn = document.getElementById(`zone-${zone}`);
+      if(targetBtn) targetBtn.classList.add('active');
       currentZone = zone;
 
       if (zone === 'all') {
@@ -177,7 +205,6 @@
         const server = await savedDevices[zone].gatt.connect();
         const name = (savedDevices[zone].name || '').toUpperCase();
         
-        // Détection du protocole selon le nom de la LED
         if (name.includes('KS03') || name.includes('KEEPSMILE') || name.includes('TRIONES') || name.includes('LEDBLE')) {
           deviceTypes[zone] = 'keepsmile';
         } else {
@@ -214,16 +241,16 @@
       }
     }
 
-    function forgetCurrentZone() {
-      if (!currentZone || currentZone === 'all') return;
-      if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-        savedDevices[currentZone].gatt.disconnect();
+    async function ensureConnected(zone) {
+      if (!savedDevices[zone]) return false;
+      if (!savedDevices[zone].gatt.connected) {
+        try {
+          await savedDevices[zone].gatt.connect();
+        } catch(e) {
+          return false;
+        }
       }
-      savedDevices[currentZone] = null;
-      savedCharacteristics[currentZone] = null;
-      deviceTypes[currentZone] = 'unknown';
-      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
-      status.style.color = "#ff9f1c";
+      return true;
     }
 
     async function writeData(char, bytes) {
@@ -237,29 +264,20 @@
       }
     }
 
-    // --- GENERATEURS DE TRAMES PAR MARQUE ---
-
     function getPowerPayload(zone, state) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
-        return [0xcc, state ? 0x23 : 0x24, 0x33];
-      } else {
-        return [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
-      }
+      return deviceTypes[zone] === 'keepsmile' 
+        ? [0xcc, state ? 0x23 : 0x24, 0x33] 
+        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
     }
 
     function getColorPayload(zone, r, g, b) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
-        return [0x56, r, g, b, 0x00, 0xf0, 0xaa];
-      } else {
-        return [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
-      }
+      return deviceTypes[zone] === 'keepsmile'
+        ? [0x56, r, g, b, 0x00, 0xf0, 0xaa]
+        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
     }
 
     function getBrightnessPayload(zone, val) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
+      if (deviceTypes[zone] === 'keepsmile') {
         const pct = Math.round((parseInt(val) / 100) * 255);
         return [0xbb, pct, 0x00, 0x44];
       } else {
@@ -268,30 +286,18 @@
     }
 
     function getAnimPayload(zone, lotusMode, keepsmileMode) {
-      const type = deviceTypes[zone];
-      if (type === 'keepsmile') {
-        return [0xbb, keepsmileMode, 0x03, 0x44];
-      } else {
-        return [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0xef];
-      }
+      return deviceTypes[zone] === 'keepsmile'
+        ? [0xbb, keepsmileMode, 0x03, 0x44]
+        : [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0xef];
     }
-
-    // --- ENVOI DES COMMANDES ---
 
     async function sendPower(state) {
       if (!currentZone) return alert("Sélectionnez d'abord une zone !");
 
-      if (currentZone === 'all') {
-        for (const zone of ['chambre', 'bureau', 'meuble']) {
-          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-            await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
-          }
-        }
-      } else {
-        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-          await writeData(savedCharacteristics[currentZone], getPowerPayload(currentZone, state));
-        } else {
-          alert("Ruban non connecté.");
+      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
+      for (const zone of targets) {
+        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
+          await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
         }
       }
     }
@@ -299,17 +305,10 @@
     async function sendColor(r, g, b) {
       if (!currentZone) return alert("Sélectionnez d'abord une zone !");
 
-      if (currentZone === 'all') {
-        for (const zone of ['chambre', 'bureau', 'meuble']) {
-          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-            await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
-          }
-        }
-      } else {
-        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-          await writeData(savedCharacteristics[currentZone], getColorPayload(currentZone, r, g, b));
-        } else {
-          alert("Ruban non connecté.");
+      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
+      for (const zone of targets) {
+        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
+          await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
         }
       }
     }
@@ -317,29 +316,18 @@
     async function sendAnimTheme(lotusMode, keepsmileMode) {
       if (!currentZone) return alert("Sélectionnez d'abord une zone !");
 
-      if (currentZone === 'all') {
-        for (const zone of ['chambre', 'bureau', 'meuble']) {
-          if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-            await writeData(savedCharacteristics[zone], getAnimPayload(zone, lotusMode, keepsmileMode));
-          }
-        }
-      } else {
-        if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-          await writeData(savedCharacteristics[currentZone], getAnimPayload(currentZone, lotusMode, keepsmileMode));
-        } else {
-          alert("Ruban non connecté.");
+      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
+      for (const zone of targets) {
+        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
+          await writeData(savedCharacteristics[zone], getAnimPayload(zone, lotusMode, keepsmileMode));
         }
       }
     }
 
     function applyPresetTheme(type) {
-      if (type === 'gaming') {
-        sendColor(147, 51, 234); // Violet néon / Gaming
-      } else if (type === 'travail') {
-        sendColor(230, 245, 255); // Blanc froid intense
-      } else if (type === 'sommeil') {
-        sendColor(40, 5, 0); // Ambre tamisé
-      }
+      if (type === 'gaming') sendColor(147, 51, 234);
+      else if (type === 'travail') sendColor(230, 245, 255);
+      else if (type === 'sommeil') sendColor(40, 5, 0);
     }
 
     function handleBrightnessSlider(val) {
@@ -347,39 +335,77 @@
       if (now - lastBrightnessTime > 50) {
         lastBrightnessTime = now;
         if (!currentZone) return;
-
-        if (currentZone === 'all') {
-          for (const zone of ['chambre', 'bureau', 'meuble']) {
-            if (savedCharacteristics[zone] && savedDevices[zone] && savedDevices[zone].gatt.connected) {
-              writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
-            }
+        const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
+        targets.forEach(async zone => {
+          if (savedCharacteristics[zone] && await ensureConnected(zone)) {
+            writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
           }
-        } else {
-          if (savedCharacteristics[currentZone] && savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-            writeData(savedCharacteristics[currentZone], getBrightnessPayload(currentZone, val));
-          }
-        }
+        });
       }
     }
 
-    // --- MINUTEURS ---
+    function forgetCurrentZone() {
+      if (!currentZone || currentZone === 'all') return;
+      if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+        savedDevices[currentZone].gatt.disconnect();
+      }
+      savedDevices[currentZone] = null;
+      savedCharacteristics[currentZone] = null;
+      deviceTypes[currentZone] = 'unknown';
+      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
+      status.style.color = "#ff9f1c";
+    }
+
+    // --- FONCTIONS AUDIO & MINUTEUR ---
+
+    function toggleAudioDemo() {
+      demoAudio.paused ? demoAudio.play() : demoAudio.pause();
+    }
+
+    function stopAudioDemo() {
+      demoAudio.pause();
+      demoAudio.currentTime = 0;
+      if (bassOscillator) { bassOscillator.stop(); bassOscillator = null; }
+    }
+
+    function changeAudioVolume(val) { demoAudio.volume = val / 100; }
+
+    function playBassTest() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (bassOscillator) { bassOscillator.stop(); bassOscillator = null; return; }
+      bassOscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      bassOscillator.type = 'sine';
+      bassOscillator.frequency.setValueAtTime(60, audioCtx.currentTime);
+      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      bassOscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      bassOscillator.start();
+      bassOscillator.stop(audioCtx.currentTime + 5);
+    }
+
+    async function requestWakeLock() {
+      try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
+    }
 
     function startCountdown(durationMs) {
       if (activeTimer) clearInterval(activeTimer);
       document.getElementById('cancel-btn').style.display = 'block';
-
       requestWakeLock();
       nightOverlay.style.display = 'flex';
-
       const targetTime = Date.now() + durationMs;
 
       activeTimer = setInterval(() => {
         const remaining = targetTime - Date.now();
-
         if (remaining <= 0) {
           clearInterval(activeTimer);
           sendPower(false);
-          timerDisplay.innerText = "⚡ LEDs éteintes !";
+          stopAudioDemo();
+          timerDisplay.innerText = "⚡ LEDs & Audio arrêtés !";
           document.getElementById('cancel-btn').style.display = 'none';
           nightOverlay.style.display = 'none';
           releaseWakeLock();
@@ -402,13 +428,11 @@
     function startTimerExact() {
       const timeVal = document.getElementById('off-time').value;
       if (!timeVal) return alert("Sélectionnez une heure.");
-      
       const [h, m] = timeVal.split(':');
       const now = new Date();
       const target = new Date();
       target.setHours(parseInt(h), parseInt(m), 0, 0);
       if (target <= now) target.setDate(target.getDate() + 1);
-      
       startCountdown(target.getTime() - now.getTime());
     }
 
