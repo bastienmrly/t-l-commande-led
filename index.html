@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED & Audio Multi-Zones</title>
+  <title>Télécommande LED, Audio & PC</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; max-width: 420px; margin: 0 auto; }
     .card { background: #1e1e1e; padding: 18px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
+    .btn-pc { background-color: #dc2626; font-size: 15px; font-weight: bold; }
     .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
     .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
     
@@ -32,9 +33,9 @@
     .btn-audio { background-color: #a855f7; width: 48%; display: inline-block; margin-bottom: 6px; }
     .btn-audio-sub { background-color: #3b82f6; width: 100%; margin-top: 6px; }
 
-    input[type="number"], input[type="time"] {
+    input[type="number"], input[type="time"], input[type="text"] {
       width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
-      font-size: 16px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
+      font-size: 15px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
     }
 
     #night-overlay {
@@ -47,7 +48,7 @@
   </style>
 </head>
 <body>
-  <h2>💡 Contrôle Universal LED & Audio</h2>
+  <h2>💡 Contrôle LED, Audio & PC</h2>
 
   <div class="card">
     <h3>🎯 Sélectionnez la Zone LED</h3>
@@ -70,6 +71,12 @@
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
       <button class="btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
     </div>
+  </div>
+
+  <div class="card">
+    <h3>🖥️ Contrôle Ordinateur</h3>
+    <input type="text" id="pc-ip" placeholder="IP du PC (ex: 192.168.1.50)">
+    <button class="btn btn-pc" onclick="shutdownPC()">🔴 Éteindre le PC à distance</button>
   </div>
 
   <div class="card">
@@ -153,296 +160,4 @@
     let lastBrightnessTime = 0;
     let activeTimer = null;
     let wakeLock = null;
-    let audioCtx = null;
-    let bassOscillator = null;
-
-    const status = document.getElementById('status');
-    const timerDisplay = document.getElementById('timer-display');
-    const nightOverlay = document.getElementById('night-overlay');
-    const nightTimer = document.getElementById('night-timer');
-    const forgetBtn = document.getElementById('forget-btn');
-    const demoAudio = document.getElementById('demo-audio');
-
-    const ALL_SERVICES = [
-      '0000ffe0-0000-1000-8000-00805f9b34fb',
-      '0000fff0-0000-1000-8000-00805f9b34fb',
-      '0000ffd0-0000-1000-8000-00805f9b34fb',
-      '0000ff00-0000-1000-8000-00805f9b34fb',
-      '0000ae01-0000-1000-8000-00805f9b34fb'
-    ];
-
-    async function selectZone(zone) {
-      document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
-      const targetBtn = document.getElementById(`zone-${zone}`);
-      if(targetBtn) targetBtn.classList.add('active');
-      currentZone = zone;
-
-      if (zone === 'all') {
-        status.innerText = "🌐 Mode TOUT (Toutes les zones)";
-        status.style.color = "#ff9f1c";
-        forgetBtn.style.display = 'none';
-        return;
-      }
-
-      forgetBtn.style.display = 'inline-block';
-
-      if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} (${deviceTypes[zone]})`;
-        status.style.color = "#34c759";
-        return;
-      }
-
-      try {
-        if (!savedDevices[zone]) {
-          status.innerText = `🔍 Sélectionner le ruban ${zone.toUpperCase()}...`;
-          savedDevices[zone] = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: ALL_SERVICES
-          });
-        }
-
-        status.innerText = `🔗 Connexion en cours...`;
-        const server = await savedDevices[zone].gatt.connect();
-        const name = (savedDevices[zone].name || '').toUpperCase();
-        
-        if (name.includes('KS03') || name.includes('KEEPSMILE') || name.includes('TRIONES') || name.includes('LEDBLE')) {
-          deviceTypes[zone] = 'keepsmile';
-        } else {
-          deviceTypes[zone] = 'lotuslamp';
-        }
-
-        const services = await server.getPrimaryServices();
-        savedCharacteristics[zone] = null;
-
-        for (const service of services) {
-          try {
-            const characteristics = await service.getCharacteristics();
-            for (const c of characteristics) {
-              if (c.properties.writeWithoutResponse || c.properties.write) {
-                savedCharacteristics[zone] = c;
-                break;
-              }
-            }
-          } catch(e) {}
-          if (savedCharacteristics[zone]) break;
-        }
-
-        if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté : ${name || zone.toUpperCase()} [${deviceTypes[zone].toUpperCase()}]`;
-          status.style.color = "#34c759";
-        } else {
-          throw new Error("Caractéristique introuvable");
-        }
-      } catch (e) {
-        savedDevices[zone] = null;
-        savedCharacteristics[zone] = null;
-        status.innerText = "❌ Échec de connexion";
-        status.style.color = "#e71d36";
-      }
-    }
-
-    async function ensureConnected(zone) {
-      if (!savedDevices[zone]) return false;
-      if (!savedDevices[zone].gatt.connected) {
-        try {
-          await savedDevices[zone].gatt.connect();
-        } catch(e) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    async function writeData(char, bytes) {
-      const payload = new Uint8Array(bytes);
-      try {
-        await char.writeValueWithoutResponse(payload);
-      } catch(e) {
-        try {
-          await char.writeValue(payload);
-        } catch(err) {}
-      }
-    }
-
-    function getPowerPayload(zone, state) {
-      return deviceTypes[zone] === 'keepsmile' 
-        ? [0xcc, state ? 0x23 : 0x24, 0x33] 
-        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
-    }
-
-    function getColorPayload(zone, r, g, b) {
-      return deviceTypes[zone] === 'keepsmile'
-        ? [0x56, r, g, b, 0x00, 0xf0, 0xaa]
-        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
-    }
-
-    function getBrightnessPayload(zone, val) {
-      if (deviceTypes[zone] === 'keepsmile') {
-        const pct = Math.round((parseInt(val) / 100) * 255);
-        return [0xbb, pct, 0x00, 0x44];
-      } else {
-        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
-      }
-    }
-
-    function getAnimPayload(zone, lotusMode, keepsmileMode) {
-      return deviceTypes[zone] === 'keepsmile'
-        ? [0xbb, keepsmileMode, 0x03, 0x44]
-        : [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0xef];
-    }
-
-    async function sendPower(state) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-      for (const zone of targets) {
-        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-          await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
-        }
-      }
-    }
-
-    async function sendColor(r, g, b) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-      for (const zone of targets) {
-        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-          await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
-        }
-      }
-    }
-
-    async function sendAnimTheme(lotusMode, keepsmileMode) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-      for (const zone of targets) {
-        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-          await writeData(savedCharacteristics[zone], getAnimPayload(zone, lotusMode, keepsmileMode));
-        }
-      }
-    }
-
-    function applyPresetTheme(type) {
-      if (type === 'gaming') sendColor(147, 51, 234);
-      else if (type === 'travail') sendColor(230, 245, 255);
-      else if (type === 'sommeil') sendColor(40, 5, 0);
-    }
-
-    function handleBrightnessSlider(val) {
-      const now = Date.now();
-      if (now - lastBrightnessTime > 50) {
-        lastBrightnessTime = now;
-        if (!currentZone) return;
-        const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-        targets.forEach(async zone => {
-          if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-            writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
-          }
-        });
-      }
-    }
-
-    function forgetCurrentZone() {
-      if (!currentZone || currentZone === 'all') return;
-      if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-        savedDevices[currentZone].gatt.disconnect();
-      }
-      savedDevices[currentZone] = null;
-      savedCharacteristics[currentZone] = null;
-      deviceTypes[currentZone] = 'unknown';
-      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
-      status.style.color = "#ff9f1c";
-    }
-
-    // --- FONCTIONS AUDIO & MINUTEUR ---
-
-    function toggleAudioDemo() {
-      demoAudio.paused ? demoAudio.play() : demoAudio.pause();
-    }
-
-    function stopAudioDemo() {
-      demoAudio.pause();
-      demoAudio.currentTime = 0;
-      if (bassOscillator) { bassOscillator.stop(); bassOscillator = null; }
-    }
-
-    function changeAudioVolume(val) { demoAudio.volume = val / 100; }
-
-    function playBassTest() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (bassOscillator) { bassOscillator.stop(); bassOscillator = null; return; }
-      bassOscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      bassOscillator.type = 'sine';
-      bassOscillator.frequency.setValueAtTime(60, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      bassOscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      bassOscillator.start();
-      bassOscillator.stop(audioCtx.currentTime + 5);
-    }
-
-    async function requestWakeLock() {
-      try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-    }
-
-    function releaseWakeLock() {
-      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-    }
-
-    function startCountdown(durationMs) {
-      if (activeTimer) clearInterval(activeTimer);
-      document.getElementById('cancel-btn').style.display = 'block';
-      requestWakeLock();
-      nightOverlay.style.display = 'flex';
-      const targetTime = Date.now() + durationMs;
-
-      activeTimer = setInterval(() => {
-        const remaining = targetTime - Date.now();
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          sendPower(false);
-          stopAudioDemo();
-          timerDisplay.innerText = "⚡ LEDs & Audio arrêtés !";
-          document.getElementById('cancel-btn').style.display = 'none';
-          nightOverlay.style.display = 'none';
-          releaseWakeLock();
-        } else {
-          const m = Math.floor(remaining / 60000);
-          const s = Math.floor((remaining % 60000) / 1000);
-          const txt = `⏳ Extinction dans ${m}m ${s}s`;
-          timerDisplay.innerText = txt;
-          nightTimer.innerText = txt;
-        }
-      }, 1000);
-    }
-
-    function startTimerMinutes() {
-      const mins = parseInt(document.getElementById('custom-minutes').value);
-      if (isNaN(mins) || mins <= 0) return alert("Indiquez une durée valide.");
-      startCountdown(mins * 60000);
-    }
-
-    function startTimerExact() {
-      const timeVal = document.getElementById('off-time').value;
-      if (!timeVal) return alert("Sélectionnez une heure.");
-      const [h, m] = timeVal.split(':');
-      const now = new Date();
-      const target = new Date();
-      target.setHours(parseInt(h), parseInt(m), 0, 0);
-      if (target <= now) target.setDate(target.getDate() + 1);
-      startCountdown(target.getTime() - now.getTime());
-    }
-
-    function cancelTimer() {
-      if (activeTimer) clearInterval(activeTimer);
-      timerDisplay.innerText = "Minuteur annulé.";
-      document.getElementById('cancel-btn').style.display = 'none';
-      nightOverlay.style.display = 'none';
-      releaseWakeLock();
-    }
-  </script>
-</body>
-</html>
+    let
