@@ -229,7 +229,7 @@
     // --- COMMANDE D'ALLUMAGE DU PC (Wake-on-LAN) ---
     async function allumerPC() {
       // Remplace par l'adresse MAC réelle de ton PC (via ipconfig /all)
-      const macAddress = "AA:BB:CC:DD:EE:FF"; 
+      const macAddress = "6C:4C:BC:09:8C:CC"; 
 
       try {
         await fetch(`https://api.wakeonlan.one/v1/wake?mac=${macAddress}`);
