@@ -10,7 +10,8 @@
     .btn { padding: 15px; margin: 6px 0; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; }
     .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
     .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
-    .btn-pc { background-color: #dc2626; font-size: 15px; font-weight: bold; }
+    .btn-pc { background-color: #dc2626; font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+    .btn-pc-on { background-color: #16a34a; font-size: 15px; font-weight: bold; }
     .btn-timer { background-color: #ff9500; font-size: 15px; font-weight: bold; width: 100%; }
     .btn-cancel { background-color: #3a3a3c; font-size: 14px; margin-top: 8px; }
     
@@ -78,8 +79,9 @@
   <!-- CONTRÔLE DU PC -->
   <div class="card">
     <h3>🖥️ Contrôle Ordinateur</h3>
-    <input type="text" id="pc-ip" placeholder="IP du PC (ex: 192.168.1.50)">
+    <input type="text" id="pc-ip" placeholder="URL Ngrok du PC">
     <button class="btn btn-pc" onclick="shutdownPC()">🔴 Éteindre le PC à distance</button>
+    <button class="btn btn-pc-on" onclick="allumerPC()">🟢 Allumer le PC (WoL)</button>
   </div>
 
   <!-- AUDIO -->
@@ -152,8 +154,8 @@
   </div>
 
   <script>
-    // ⚠️ METS TON ADRESSE IP PAR DÉFAUT ICI (ex: "192.168.1.50") :
-    const DEFAULT_IP = "192.168.68.105"; 
+    // URL Ngrok par défaut
+    const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
 
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
     
@@ -189,7 +191,7 @@
       '0000ae01-0000-1000-8000-00805f9b34fb'
     ];
 
-    // --- CHARGEMENT AUTOMATIQUE DE L'IP SUR LE TÉLÉPHONE ---
+    // --- CHARGEMENT AUTOMATIQUE DE L'URL NGROK SUR LE TÉLÉPHONE ---
     document.addEventListener("DOMContentLoaded", () => {
       const ipInput = document.getElementById('pc-ip');
       const savedIp = localStorage.getItem('pc_ip');
@@ -201,20 +203,40 @@
     // --- COMMANDE D'EXTINCTION DU PC ---
     async function shutdownPC() {
       const ipInput = document.getElementById('pc-ip');
-      const ip = ipInput ? ipInput.value.trim() : DEFAULT_IP;
+      let url = ipInput ? ipInput.value.trim() : DEFAULT_IP;
       
-      if (!ip) return alert("Veuillez entrer l'adresse IP locale de votre PC.");
+      if (!url) return alert("Veuillez entrer l'adresse Ngrok de votre PC.");
 
-      // Enregistre l'IP saisie dans le téléphone pour la réutiliser automatiquement la prochaine fois
-      localStorage.setItem('pc_ip', ip);
+      // Formate correctement l'URL
+      if (url.endsWith('/')) url = url.slice(0, -1);
+      if (!url.startsWith('http')) url = 'https://' + url;
+
+      // Sauvegarde l'URL pour la prochaine ouverture
+      localStorage.setItem('pc_ip', url);
 
       if (confirm("Éteindre le PC à distance ?")) {
-        fetch(`http://${ip}:5000/shutdown`, { 
-          method: 'POST',
-          mode: 'no-cors'
-        })
-        .then(() => alert("Ordre d'extinction envoyé !"))
-        .catch(() => alert("Impossible de joindre le PC. Vérifiez l'IP et que server.py tourne."));
+        try {
+          // Requête GET envoyée au serveur Python via Ngrok
+          await fetch(url + '/shutdown', { method: 'GET' });
+          alert("Ordre d'extinction envoyé !");
+        } catch (error) {
+          console.error(error);
+          alert("Impossible de joindre le PC. Vérifiez que Ngrok et le script Python fonctionnent.");
+        }
+      }
+    }
+
+    // --- COMMANDE D'ALLUMAGE DU PC (Wake-on-LAN) ---
+    async function allumerPC() {
+      // Remplace par l'adresse MAC réelle de ton PC (via ipconfig /all)
+      const macAddress = "AA:BB:CC:DD:EE:FF"; 
+
+      try {
+        await fetch(`https://api.wakeonlan.one/v1/wake?mac=${macAddress}`);
+        alert("Signal d'allumage envoyé !");
+      } catch (error) {
+        console.error(error);
+        alert("Impossible d'envoyer le signal d'allumage.");
       }
     }
 
