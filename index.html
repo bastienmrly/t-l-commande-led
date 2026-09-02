@@ -79,7 +79,6 @@
   <!-- CONTRÔLE DU PC -->
   <div class="card">
     <h3>🖥️ Contrôle Ordinateur</h3>
-    <!-- URL pré-remplie par défaut dans le champ textuel -->
     <input type="text" id="pc-ip" value="https://gnarly-ecosphere-cornbread.ngrok-free.dev" placeholder="URL Ngrok du PC">
     <button class="btn btn-pc" onclick="shutdownPC()">🔴 Éteindre le PC à distance</button>
     <button class="btn btn-pc-on" onclick="allumerPC()">🟢 Allumer le PC (WoL)</button>
@@ -156,7 +155,6 @@
 
   <script>
     const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
-
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
     
     let savedDevices = {};
@@ -191,7 +189,6 @@
       '0000ae01-0000-1000-8000-00805f9b34fb'
     ];
 
-    // Restaure la dernière URL sauvegardée ou applique l'URL par défaut directement
     document.addEventListener("DOMContentLoaded", () => {
       const ipInput = document.getElementById('pc-ip');
       const savedIp = localStorage.getItem('pc_ip');
@@ -213,7 +210,7 @@
 
       if (confirm("Éteindre le PC à distance ?")) {
         try {
-          await fetch(url + '/shutdown', { 
+          await fetch(url + '/eteindre', { 
             method: 'POST',
             headers: {
               'ngrok-skip-browser-warning': 'true'
@@ -228,11 +225,15 @@
     }
 
     async function allumerPC() {
-      const macAddress = "04:7C:16:C8:39:00"; 
+      const ipInput = document.getElementById('pc-ip');
+      let url = ipInput ? ipInput.value.trim() : DEFAULT_IP;
+
+      if (url.endsWith('/')) url = url.slice(0, -1);
+      if (!url.startsWith('http')) url = 'https://' + url;
 
       try {
-        await fetch(`https://api.wakeonlan.one/v1/wake?mac=${macAddress}`);
-        alert("Signal d'allumage envoyé !");
+        await fetch(url + '/allumer', { method: 'POST' });
+        alert("Signal WoL envoyé au serveur !");
       } catch (error) {
         console.error(error);
         alert("Impossible d'envoyer le signal d'allumage.");
@@ -332,16 +333,17 @@
       }
     }
 
+    // Trames réseau Bluetooth adaptées
     function getPowerPayload(zone, state) {
       return deviceTypes[zone] === 'keepsmile' 
         ? [0xcc, state ? 0x23 : 0x24, 0x33] 
-        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
+        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0x00, 0xef];
     }
 
     function getColorPayload(zone, r, g, b) {
       return deviceTypes[zone] === 'keepsmile'
         ? [0x56, r, g, b, 0x00, 0xf0, 0xaa]
-        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
+        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x00, 0xef];
     }
 
     function getBrightnessPayload(zone, val) {
@@ -349,14 +351,14 @@
         const pct = Math.round((parseInt(val) / 100) * 255);
         return [0xbb, pct, 0x00, 0x44];
       } else {
-        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
+        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0x00, 0xef];
       }
     }
 
     function getAnimPayload(zone, lotusMode, keepsmileMode) {
       return deviceTypes[zone] === 'keepsmile'
         ? [0xbb, keepsmileMode, 0x03, 0x44]
-        : [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0xef];
+        : [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0x00, 0xef];
     }
 
     async function sendPower(state) {
@@ -364,6 +366,9 @@
 
       const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
       for (const zone of targets) {
+        if (!savedCharacteristics[zone] && zone !== 'all') {
+          await selectZone(zone);
+        }
         if (savedCharacteristics[zone] && await ensureConnected(zone)) {
           await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
         }
