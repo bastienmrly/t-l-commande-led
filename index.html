@@ -37,7 +37,6 @@
 <body>
   <h2>💡 Universal Control Center</h2>
 
-  <!-- ZONES LED -->
   <div class="card">
     <h3>🎯 Zone LED active</h3>
     <div class="zone-grid">
@@ -54,7 +53,6 @@
     <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
   </div>
 
-  <!-- ALLUMAGE LED -->
   <div class="card">
     <div class="row">
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
@@ -62,7 +60,6 @@
     </div>
   </div>
 
-  <!-- CONTRÔLE DU PC -->
   <div class="card">
     <h3>🖥️ Contrôle Ordinateur</h3>
     <input type="text" id="pc-ip" value="https://gnarly-ecosphere-cornbread.ngrok-free.dev" placeholder="URL Ngrok du PC">
@@ -70,7 +67,6 @@
     <button class="btn btn-pc-on" onclick="allumerPC()">🟢 Allumer le PC (WoL)</button>
   </div>
 
-  <!-- THÈMES -->
   <div class="card">
     <h3>🎭 Thèmes & Ambiances</h3>
     <div class="theme-grid">
@@ -82,7 +78,6 @@
     </div>
   </div>
 
-  <!-- COULEURS -->
   <div class="card">
     <h3>🎨 Couleurs Principales</h3>
     <div class="color-grid">
@@ -97,7 +92,6 @@
     </div>
   </div>
 
-  <!-- LUMINOSITÉ -->
   <div class="card">
     <h3>☀️ Luminosité LED</h3>
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
@@ -107,8 +101,8 @@
     const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
     
-    // REMPLACEZ PAR L'ADRESSE MAC DE VOTRE PC (Trouvée sur Fing ou l'app Deco)
-    const PC_MAC_ADDRESS = " 04-7C-16-C8-39-00"; 
+    // ⚠️ REMPLACEZ CETTE VALEUR PAR L'ADRESSE MAC DE VOTRE PC (Trouvée dans Fing ou l'application Deco)
+    const PC_MAC_ADDRESS = " 04:7C:16:C8:39:00"; 
 
     let savedDevices = {};
     let savedCharacteristics = {};
@@ -169,19 +163,22 @@
     }
 
     async function allumerPC() {
+      // Nettoyage automatique du format de l'adresse MAC
+      const cleanMac = PC_MAC_ADDRESS.trim().replace(/-/g, ':');
+
       try {
-        const response = await fetch(`https://wake-on-lan.s88.ch/api/v1/wake/${PC_MAC_ADDRESS}`, {
+        const response = await fetch(`https://api.wakeonlan.net/wake?mac=${cleanMac}`, {
           method: 'GET'
         });
 
         if (response.ok) {
           alert("🟢 Signal d'allumage (Magic Packet) envoyé avec succès !");
         } else {
-          alert("⚠️ Signal envoyé mais aucune confirmation du réseau.");
+          alert("⚠️ Ordre envoyé au service, en attente de réponse du routeur.");
         }
       } catch (error) {
         console.error(error);
-        alert("❌ Erreur lors de l'envoi du signal d'allumage.");
+        alert("❌ Erreur de connexion au service d'allumage.");
       }
     }
 
