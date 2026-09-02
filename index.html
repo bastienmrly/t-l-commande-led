@@ -107,6 +107,9 @@
     const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
     
+    // REMPLACEZ PAR L'ADRESSE MAC DE VOTRE PC (Trouvée sur Fing ou l'app Deco)
+    const PC_MAC_ADDRESS = "00:1A:2B:3C:4D:5E"; 
+
     let savedDevices = {};
     let savedCharacteristics = {};
     let deviceTypes = {};
@@ -166,19 +169,19 @@
     }
 
     async function allumerPC() {
-      const ipInput = document.getElementById('pc-ip');
-      const url = cleanUrl(ipInput ? ipInput.value : DEFAULT_IP);
-      localStorage.setItem('pc_ip', url);
-
       try {
-        await fetch(url + '/allumer', { 
-          method: 'POST',
-          headers: { 'ngrok-skip-browser-warning': 'true' }
+        const response = await fetch(`https://wake-on-lan.s88.ch/api/v1/wake/${PC_MAC_ADDRESS}`, {
+          method: 'GET'
         });
-        alert("Signal WoL envoyé au serveur !");
+
+        if (response.ok) {
+          alert("🟢 Signal d'allumage (Magic Packet) envoyé avec succès !");
+        } else {
+          alert("⚠️ Signal envoyé mais aucune confirmation du réseau.");
+        }
       } catch (error) {
         console.error(error);
-        alert("Impossible d'envoyer le signal d'allumage.");
+        alert("❌ Erreur lors de l'envoi du signal d'allumage.");
       }
     }
 
