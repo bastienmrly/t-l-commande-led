@@ -51,7 +51,6 @@
 <body>
   <h2>💡 Contrôle Universal LED, Audio & PC</h2>
 
-  <!-- ZONES LED -->
   <div class="card">
     <h3>🎯 Sélectionnez la Zone LED</h3>
     <div class="zone-grid">
@@ -68,7 +67,6 @@
     <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
   </div>
 
-  <!-- ALLUMAGE LED -->
   <div class="card">
     <div class="row">
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
@@ -76,7 +74,6 @@
     </div>
   </div>
 
-  <!-- CONTRÔLE DU PC -->
   <div class="card">
     <h3>🖥️ Contrôle Ordinateur</h3>
     <input type="text" id="pc-ip" placeholder="URL Ngrok du PC">
@@ -84,7 +81,6 @@
     <button class="btn btn-pc-on" onclick="allumerPC()">🟢 Allumer le PC (WoL)</button>
   </div>
 
-  <!-- AUDIO -->
   <div class="card">
     <h3>🔊 Enceinte (Ultimea Aura A40)</h3>
     <p style="font-size: 12px; color: #888; margin-top: -8px; margin-bottom: 12px;">Connectez d'abord votre appareil en Bluetooth à l'enceinte.</p>
@@ -101,7 +97,6 @@
     <audio id="demo-audio" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
   </div>
 
-  <!-- THÈMES -->
   <div class="card">
     <h3>🎭 Thèmes & Ambiances</h3>
     <div class="theme-grid">
@@ -113,7 +108,6 @@
     </div>
   </div>
 
-  <!-- COULEURS -->
   <div class="card">
     <h3>🎨 Couleurs Principales</h3>
     <div class="color-grid">
@@ -128,13 +122,11 @@
     </div>
   </div>
 
-  <!-- LUMINOSITÉ -->
   <div class="card">
     <h3>☀️ Luminosité LED</h3>
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
   </div>
 
-  <!-- MINUTEUR -->
   <div class="card">
     <h3>⏱️ Minuteur d'extinction</h3>
     <input type="number" id="custom-minutes" placeholder="Durée en minutes (ex: 30)" min="1">
@@ -154,7 +146,6 @@
   </div>
 
   <script>
-    // URL Ngrok par défaut
     const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
 
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
@@ -191,7 +182,6 @@
       '0000ae01-0000-1000-8000-00805f9b34fb'
     ];
 
-    // --- CHARGEMENT AUTOMATIQUE DE L'URL NGROK SUR LE TÉLÉPHONE ---
     document.addEventListener("DOMContentLoaded", () => {
       const ipInput = document.getElementById('pc-ip');
       const savedIp = localStorage.getItem('pc_ip');
@@ -200,36 +190,34 @@
       }
     });
 
-    // --- COMMANDE D'EXTINCTION DU PC ---
+    // --- COMMANDE D'EXTINCTION DU PC MIS À JOUR ---
     async function shutdownPC() {
       const ipInput = document.getElementById('pc-ip');
       let url = ipInput ? ipInput.value.trim() : DEFAULT_IP;
       
       if (!url) return alert("Veuillez entrer l'adresse Ngrok de votre PC.");
 
-      // Formate correctement l'URL
       if (url.endsWith('/')) url = url.slice(0, -1);
       if (!url.startsWith('http')) url = 'https://' + url;
 
-      // Sauvegarde l'URL pour la prochaine ouverture
       localStorage.setItem('pc_ip', url);
 
       if (confirm("Éteindre le PC à distance ?")) {
         try {
-          // Requête optimisée avec mode no-cors pour contourner le blocage du navigateur
           await fetch(url + '/shutdown', { 
-            method: 'GET',
-            mode: 'no-cors'
+            method: 'POST',
+            headers: {
+              'ngrok-skip-browser-warning': 'true'
+            }
           });
           alert("Ordre d'extinction envoyé !");
         } catch (error) {
           console.error(error);
-          alert("Impossible de joindre le PC. Vérifiez que Ngrok et le script Python fonctionnent.");
+          alert("Impossible de joindre le PC.");
         }
       }
     }
 
-    // --- COMMANDE D'ALLUMAGE DU PC (Wake-on-LAN) ---
     async function allumerPC() {
       const macAddress = "6C:4C:BC:09:8C:CC"; 
 
@@ -242,7 +230,6 @@
       }
     }
 
-    // --- GESTION DE LA SELECTION DE ZONE LED ---
     async function selectZone(zone) {
       document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
       const targetBtn = document.getElementById(`zone-${zone}`);
@@ -252,261 +239,4 @@
       if (zone === 'all') {
         status.innerText = "🌐 Mode TOUT (Toutes les zones)";
         status.style.color = "#ff9f1c";
-        forgetBtn.style.display = 'none';
-        return;
-      }
-
-      forgetBtn.style.display = 'inline-block';
-
-      if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
-        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} (${deviceTypes[zone]})`;
-        status.style.color = "#34c759";
-        return;
-      }
-
-      try {
-        if (!savedDevices[zone]) {
-          status.innerText = `🔍 Sélectionner le ruban ${zone.toUpperCase()}...`;
-          savedDevices[zone] = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: ALL_SERVICES
-          });
-        }
-
-        status.innerText = `🔗 Connexion en cours...`;
-        const server = await savedDevices[zone].gatt.connect();
-        const name = (savedDevices[zone].name || '').toUpperCase();
-        
-        if (name.includes('KS03') || name.includes('KEEPSMILE') || name.includes('TRIONES') || name.includes('LEDBLE')) {
-          deviceTypes[zone] = 'keepsmile';
-        } else {
-          deviceTypes[zone] = 'lotuslamp';
-        }
-
-        const services = await server.getPrimaryServices();
-        savedCharacteristics[zone] = null;
-
-        for (const service of services) {
-          try {
-            const characteristics = await service.getCharacteristics();
-            for (const c of characteristics) {
-              if (c.properties.writeWithoutResponse || c.properties.write) {
-                savedCharacteristics[zone] = c;
-                break;
-              }
-            }
-          } catch(e) {}
-          if (savedCharacteristics[zone]) break;
-        }
-
-        if (savedCharacteristics[zone]) {
-          status.innerText = `✅ Connecté : ${name || zone.toUpperCase()} [${deviceTypes[zone].toUpperCase()}]`;
-          status.style.color = "#34c759";
-        } else {
-          throw new Error("Caractéristique introuvable");
-        }
-      } catch (e) {
-        savedDevices[zone] = null;
-        savedCharacteristics[zone] = null;
-        status.innerText = "❌ Échec de connexion";
-        status.style.color = "#e71d36";
-      }
-    }
-
-    async function ensureConnected(zone) {
-      if (!savedDevices[zone]) return false;
-      if (!savedDevices[zone].gatt.connected) {
-        try {
-          await savedDevices[zone].gatt.connect();
-        } catch(e) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    async function writeData(char, bytes) {
-      const payload = new Uint8Array(bytes);
-      try {
-        await char.writeValueWithoutResponse(payload);
-      } catch(e) {
-        try {
-          await char.writeValue(payload);
-        } catch(err) {}
-      }
-    }
-
-    // --- PROTOCOLES LED (LOTUS & KEEPSMILE) ---
-    function getPowerPayload(zone, state) {
-      return deviceTypes[zone] === 'keepsmile' 
-        ? [0xcc, state ? 0x23 : 0x24, 0x33] 
-        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0xef];
-    }
-
-    function getColorPayload(zone, r, g, b) {
-      return deviceTypes[zone] === 'keepsmile'
-        ? [0x56, r, g, b, 0x00, 0xf0, 0xaa]
-        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x10, 0xef];
-    }
-
-    function getBrightnessPayload(zone, val) {
-      if (deviceTypes[zone] === 'keepsmile') {
-        const pct = Math.round((parseInt(val) / 100) * 255);
-        return [0xbb, pct, 0x00, 0x44];
-      } else {
-        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0xef];
-      }
-    }
-
-    function getAnimPayload(zone, lotusMode, keepsmileMode) {
-      return deviceTypes[zone] === 'keepsmile'
-        ? [0xbb, keepsmileMode, 0x03, 0x44]
-        : [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0xef];
-    }
-
-    async function sendPower(state) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-      for (const zone of targets) {
-        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-          await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
-        }
-      }
-    }
-
-    async function sendColor(r, g, b) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-      for (const zone of targets) {
-        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-          await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
-        }
-      }
-    }
-
-    async function sendAnimTheme(lotusMode, keepsmileMode) {
-      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
-
-      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-      for (const zone of targets) {
-        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-          await writeData(savedCharacteristics[zone], getAnimPayload(zone, lotusMode, keepsmileMode));
-        }
-      }
-    }
-
-    function applyPresetTheme(type) {
-      if (type === 'gaming') sendColor(147, 51, 234);
-      else if (type === 'travail') sendColor(230, 245, 255);
-      else if (type === 'sommeil') sendColor(40, 5, 0);
-    }
-
-    function handleBrightnessSlider(val) {
-      const now = Date.now();
-      if (now - lastBrightnessTime > 50) {
-        lastBrightnessTime = now;
-        if (!currentZone) return;
-        const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
-        targets.forEach(async zone => {
-          if (savedCharacteristics[zone] && await ensureConnected(zone)) {
-            writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
-          }
-        });
-      }
-    }
-
-    function forgetCurrentZone() {
-      if (!currentZone || currentZone === 'all') return;
-      if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
-        savedDevices[currentZone].gatt.disconnect();
-      }
-      savedDevices[currentZone] = null;
-      savedCharacteristics[currentZone] = null;
-      deviceTypes[currentZone] = 'unknown';
-      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
-      status.style.color = "#ff9f1c";
-    }
-
-    // --- FONCTIONS AUDIO & MINUTEUR ---
-    function toggleAudioDemo() { demoAudio.paused ? demoAudio.play() : demoAudio.pause(); }
-    function stopAudioDemo() { demoAudio.pause(); demoAudio.currentTime = 0; if (bassOscillator) { bassOscillator.stop(); bassOscillator = null; } }
-    function changeAudioVolume(val) { demoAudio.volume = val / 100; }
-
-    function playBassTest() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (bassOscillator) { bassOscillator.stop(); bassOscillator = null; return; }
-      bassOscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      bassOscillator.type = 'sine';
-      bassOscillator.frequency.setValueAtTime(60, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      bassOscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      bassOscillator.start();
-      bassOscillator.stop(audioCtx.currentTime + 5);
-    }
-
-    async function requestWakeLock() {
-      try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-    }
-
-    function releaseWakeLock() {
-      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
-    }
-
-    function startCountdown(durationMs) {
-      if (activeTimer) clearInterval(activeTimer);
-      document.getElementById('cancel-btn').style.display = 'block';
-      requestWakeLock();
-      nightOverlay.style.display = 'flex';
-      const targetTime = Date.now() + durationMs;
-
-      activeTimer = setInterval(() => {
-        const remaining = targetTime - Date.now();
-        if (remaining <= 0) {
-          clearInterval(activeTimer);
-          sendPower(false);
-          stopAudioDemo();
-          timerDisplay.innerText = "⚡ LEDs & Audio arrêtés !";
-          document.getElementById('cancel-btn').style.display = 'none';
-          nightOverlay.style.display = 'none';
-          releaseWakeLock();
-        } else {
-          const m = Math.floor(remaining / 60000);
-          const s = Math.floor((remaining % 60000) / 1000);
-          const txt = `⏳ Extinction dans ${m}m ${s}s`;
-          timerDisplay.innerText = txt;
-          nightTimer.innerText = txt;
-        }
-      }, 1000);
-    }
-
-    function startTimerMinutes() {
-      const mins = parseInt(document.getElementById('custom-minutes').value);
-      if (isNaN(mins) || mins <= 0) return alert("Indiquez une durée valide.");
-      startCountdown(mins * 60000);
-    }
-
-    function startTimerExact() {
-      const timeVal = document.getElementById('off-time').value;
-      if (!timeVal) return alert("Sélectionnez une heure.");
-      const [h, m] = timeVal.split(':');
-      const now = new Date();
-      const target = new Date();
-      target.setHours(parseInt(h), parseInt(m), 0, 0);
-      if (target <= now) target.setDate(target.getDate() + 1);
-      startCountdown(target.getTime() - now.getTime());
-    }
-
-    function cancelTimer() {
-      if (activeTimer) clearInterval(activeTimer);
-      timerDisplay.innerText = "Minuteur annulé.";
-      document.getElementById('cancel-btn').style.display = 'none';
-      nightOverlay.style.display = 'none';
-      releaseWakeLock();
-    }
-  </script>
-</body>
-</html>
+        forgetBtn.style.display = 'none
