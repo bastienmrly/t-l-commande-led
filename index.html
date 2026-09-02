@@ -3,42 +3,155 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Télécommande LED Universal</title>
+  <title>Télécommande Universal - LED & PC</title>
   <style>
-    body { font-family: -apple-system, sans-serif; background: #121212; color: white; padding: 20px; text-align: center; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    button { padding: 15px; border: none; border-radius: 8px; font-weight: bold; background: #2a2a2a; color: white; cursor: pointer; }
-    button.active { background: #ff9500; color: black; }
-    .action-btn { width: 100%; padding: 20px; margin-top: 10px; font-size: 18px; border-radius: 12px; }
-    .btn-on { background: #00d285; color: black; }
-    .btn-off { background: #ff3b30; color: white; }
-    .btn-reset { background: transparent; color: #ff9500; border: 1px dashed #ff9500; margin-top: 10px; width: 100%; }
-    #status { margin: 15px 0; padding: 10px; border-radius: 6px; background: #1e1e1e; font-size: 14px; }
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --accent: #ff9500;
+      --green: #00d285;
+      --red: #ff3b30;
+      --text: #ffffff;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 15px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    h2, h3 { text-align: center; margin-bottom: 15px; }
+
+    .card {
+      background: var(--card);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      background: #2a2a2a;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:active { transform: scale(0.98); }
+    button.active { background: var(--accent); color: #000; }
+
+    .btn-all {
+      grid-column: span 2;
+      background: #2c3e50;
+      border: 1px solid #34495e;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-btn {
+      padding: 18px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+
+    .btn-on { background: var(--green); color: #000; }
+    .btn-off { background: var(--red); color: #fff; }
+    
+    .btn-reset {
+      background: transparent;
+      color: var(--accent);
+      border: 1px dashed var(--accent);
+      width: 100%;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+
+    #status {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 6px;
+      background: #181818;
+      font-size: 13px;
+      text-align: center;
+      border: 1px solid #333;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #121212;
+      color: var(--text);
+      box-sizing: border-box;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .btn-pc {
+      width: 100%;
+      background: var(--red);
+      color: white;
+      padding: 15px;
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>💡 Contrôle Universal LED</h2>
+  <h2>💡 Contrôle Universal LED, Audio & PC</h2>
 
-  <div class="grid">
-    <button onclick="selectZone('chambre')" id="btn-chambre">🛏️ Chambre</button>
-    <button onclick="selectZone('bureau')" id="btn-bureau">🖥️ Bureau</button>
-    <button onclick="selectZone('meuble')" id="btn-meuble">🛋️ Meuble</button>
-    <button onclick="selectZone('etage_arme')" id="btn-etage_arme">⚔️ Étage Arme</button>
-    <button onclick="selectZone('etage_plante')" id="btn-etage_plante">🪴 Étage Plante</button>
-    <button onclick="selectZone('etage_jeux')" id="btn-etage_jeux">🎮 Étage Jeux</button>
+  <!-- SECTION LED -->
+  <div class="card">
+    <div style="font-size: 13px; margin-bottom: 10px; color: #aaa;">🚀 Sélectionnez la Zone LED :</div>
+    
+    <div class="grid">
+      <button onclick="selectZone('chambre')" id="btn-chambre">🛏️ Chambre</button>
+      <button onclick="selectZone('bureau')" id="btn-bureau">🖥️ Bureau</button>
+      <button onclick="selectZone('meuble')" id="btn-meuble">🛋️ Meuble</button>
+      <button onclick="selectZone('etage_arme')" id="btn-etage_arme">⚔️ Étage Arme</button>
+      <button onclick="selectZone('etage_plante')" id="btn-etage_plante">🪴 Étage Plante</button>
+      <button onclick="selectZone('etage_jeux')" id="btn-etage_jeux">🎮 Étage Jeux</button>
+      <button onclick="selectZone('all')" id="btn-all" class="btn-all">🌐 TOUTES LES ZONES</button>
+    </div>
+
+    <div id="status">Sélectionnez une zone pour commencer</div>
+
+    <button class="btn-reset" onclick="resetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
+
+    <div class="action-grid" style="margin-top: 15px;">
+      <button class="action-btn btn-on" onclick="sendPower(true)">ALLUMER</button>
+      <button class="action-btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
+    </div>
   </div>
 
-  <div id="status">Sélectionnez une zone</div>
-
-  <button class="btn-reset" onclick="resetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
-
-  <br><br>
-  <button class="action-btn btn-on" onclick="sendPower(true)">ALLUMER</button>
-  <button class="action-btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
+  <!-- SECTION ORDINATEUR -->
+  <div class="card">
+    <h3>🖥️ Contrôle Ordinateur</h3>
+    <input type="text" id="ngrok-url" value="https://gnarly-ecosphere-cornbread.ngrok" placeholder="https://votre-url.ngrok-free.app">
+    <button class="btn-pc" onclick="shutdownPC()">🛑 Éteindre le PC à distance</button>
+  </div>
 
   <script>
-    // UUIDs spécifiques aux contrôleurs LotusLamp / ELK-BLEDOM / Triones
+    // UUIDs spécifiques LotusLamp / ELK-BLEDOM / Triones
     const SERVICE_UUID = '0000ffd0-0000-1000-8000-00805f9b34fb';
     const CHARACTERISTIC_UUID = '0000ffd1-0000-1000-8000-00805f9b34fb';
 
@@ -46,6 +159,7 @@
     const CMD_ON = new Uint8Array([0x7e, 0x07, 0x05, 0x03, 0xff, 0xff, 0xff, 0x00, 0xef]);
     const CMD_OFF = new Uint8Array([0x7e, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xef]);
 
+    const ZONES = ['chambre', 'bureau', 'meuble', 'etage_arme', 'etage_plante', 'etage_jeux'];
     let currentZone = null;
     let devices = {};
     let characteristics = {};
@@ -59,27 +173,30 @@
     function selectZone(zone) {
       currentZone = zone;
       document.querySelectorAll('.grid button').forEach(b => b.classList.remove('active'));
-      document.getElementById(`btn-${zone}`).classList.add('active');
+      
+      const selectedBtn = document.getElementById(`btn-${zone}`);
+      if(selectedBtn) selectedBtn.classList.add('active');
 
-      if (characteristics[zone]) {
-        updateStatus(`Connecté à la zone : ${zone.toUpperCase()}`);
+      if (zone === 'all') {
+        updateStatus("Mode TOUTES LES ZONES activé");
+      } else if (characteristics[zone] && devices[zone]?.gatt.connected) {
+        updateStatus(`Connecté : ${devices[zone].name || 'Ruban LED'} [${zone.toUpperCase()}]`);
       } else {
-        updateStatus(`Zone ${zone.toUpperCase()} non associée. Cliquez sur Allumer pour scanner.`);
+        updateStatus(`Zone ${zone.toUpperCase()} sélectionnée. Cliquez sur Allumer.`);
       }
     }
 
     async function connectZone(zone) {
-      updateStatus("Recherche du ruban LED Bluetooth...");
+      updateStatus(`Appairage de la zone ${zone.toUpperCase()}...`);
       try {
         const device = await navigator.bluetooth.requestDevice({
           acceptAllDevices: true,
           optionalServices: [SERVICE_UUID, 'ffd0']
         });
 
-        updateStatus("Connexion en cours...");
+        updateStatus("Connexion GATT en cours...");
         const server = await device.gatt.connect();
         
-        // Recherche du service FFD0
         let service;
         try {
           service = await server.getPrimaryService(SERVICE_UUID);
@@ -87,7 +204,6 @@
           service = await server.getPrimaryService('ffd0');
         }
 
-        // Recherche de la caractéristique FFD1
         let characteristic;
         try {
           characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
@@ -98,48 +214,80 @@
         devices[zone] = device;
         characteristics[zone] = characteristic;
 
-        updateStatus(`✅ Connecté : ${device.name || 'Ruban LED'} [${zone.toUpperCase()}]`);
+        updateStatus(`✅ Connecté : ${device.name || 'LED'} [${zone.toUpperCase()}]`);
         return characteristic;
       } catch (error) {
         console.error(error);
-        updateStatus(`❌ Échec de connexion : ${error.message}`, false);
+        updateStatus(`❌ Erreur connexion : ${error.message}`, false);
         return null;
       }
     }
 
     async function sendPower(state) {
       if (!currentZone) {
-        alert("Veuillez sélectionner une zone !");
+        alert("Veuillez d'abord sélectionner une zone !");
         return;
       }
 
-      let characteristic = characteristics[currentZone];
+      const targets = currentZone === 'all' ? ZONES : [currentZone];
 
-      // Si la zone n'est pas encore connectée, on lance l'appairage
-      if (!characteristic || !devices[currentZone]?.gatt.connected) {
-        characteristic = await connectZone(currentZone);
-      }
+      for (const zone of targets) {
+        // En mode "ALL", on ignore les zones qui ne sont pas encore configurées
+        if (currentZone === 'all' && !characteristics[zone]) continue;
 
-      if (characteristic) {
-        try {
-          const command = state ? CMD_ON : CMD_OFF;
-          await characteristic.writeValue(command);
-          updateStatus(state ? "💡 Ordre : ALLUMÉ" : "🌙 Ordre : ÉTEINT");
-        } catch (error) {
-          console.error(error);
-          updateStatus("❌ Erreur lors de l'envoi de la commande", false);
+        let char = characteristics[zone];
+
+        if (!char || !devices[zone]?.gatt.connected) {
+          char = await connectZone(zone);
         }
+
+        if (char) {
+          try {
+            const command = state ? CMD_ON : CMD_OFF;
+            await char.writeValue(command);
+            updateStatus(state ? `💡 ${zone.toUpperCase()} Allumé` : `🌙 ${zone.toUpperCase()} Éteint`);
+          } catch (error) {
+            console.error(error);
+            updateStatus(`❌ Échec envoi sur ${zone}`, false);
+          }
+        }
+        // Micro-pause pour éviter la saturation du contrôleur Bluetooth iOS
+        await new Promise(r => setTimeout(r, 200));
       }
     }
 
     function resetCurrentZone() {
-      if (!currentZone) return alert("Sélectionnez une zone à réinitialiser.");
+      if (!currentZone || currentZone === 'all') return alert("Sélectionnez une zone précise à réinitialiser.");
+      
       if (devices[currentZone] && devices[currentZone].gatt.connected) {
         devices[currentZone].gatt.disconnect();
       }
       delete devices[currentZone];
       delete characteristics[currentZone];
-      updateStatus(`Zone ${currentZone.toUpperCase()} réinitialisée. Associez à nouveau.`);
+      
+      const btn = document.getElementById(`btn-${currentZone}`);
+      if(btn) btn.classList.remove('active');
+      
+      updateStatus(`Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez pour ré-appairer.`);
+    }
+
+    // FONCTION PC (NGROK)
+    async function shutdownPC() {
+      const url = document.getElementById('ngrok-url').value.trim();
+      if (!url) return alert("Veuillez saisir votre URL Ngrok !");
+
+      if (confirm("Voulez-vous vraiment éteindre l'ordinateur à distance ?")) {
+        try {
+          const response = await fetch(`${url}/shutdown`, { method: 'POST' });
+          if (response.ok) {
+            alert("🖥️ Ordre d'extinction envoyé avec succès !");
+          } else {
+            alert("⚠️ Erreur : Le serveur a répondu mais n'a pas pu éteindre le PC.");
+          }
+        } catch (error) {
+          alert("❌ Impossible de joindre le serveur Ngrok. Vérifiez qu'il est bien lancé sur le PC.");
+        }
+      }
     }
   </script>
 </body>
