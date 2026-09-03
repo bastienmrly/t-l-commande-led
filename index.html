@@ -1,82 +1,339 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Télécommande PC</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #121212;
-            color: #ffffff;
-            margin: 0;
-        }
-        h1 {
-            margin-bottom: 30px;
-        }
-        .btn {
-            width: 220px;
-            padding: 15px;
-            margin: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-        .btn:active {
-            transform: scale(0.95);
-        }
-        .btn-unlock {
-            background-color: #007aff;
-            color: white;
-        }
-        .btn-shutdown {
-            background-color: #ff3b30;
-            color: white;
-        }
-        #status {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #8e8e93;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Télécommande Universal - LED & PC</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; text-align: center; padding: 15px; max-width: 440px; margin: 0 auto; }
+    .card { background: #1e1e1e; padding: 16px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .btn { padding: 14px; margin: 6px 0; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; color: white; font-weight: bold; width: 100%; box-sizing: border-box; transition: transform 0.1s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-on { background-color: #2ec4b6; width: 48%; display: inline-block; }
+    .btn-off { background-color: #e71d36; width: 48%; display: inline-block; }
+    .btn-pc { background-color: #dc2626; font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+    
+    .zone-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+    .btn-zone { background-color: #2c2c2e; border: 2px solid #3a3a3c; padding: 12px 8px; font-size: 13px; border-radius: 10px; color: #fff; font-weight: bold; cursor: pointer; }
+    .btn-zone.active { border-color: #ff9f1c; background-color: #ff9f1c; color: #000; }
+    
+    .btn-forget { background-color: transparent; border: 1px dashed #e71d36; color: #e71d36; font-size: 12px; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-top: 10px; display: none; width: 100%; }
+    #status { margin-top: 10px; font-weight: bold; font-size: 13px; color: #ff9f1c; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; }
+    h3 { margin-top: 5px; margin-bottom: 12px; font-size: 15px; color: #aaa; text-align: left; }
+    .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .color-btn { height: 42px; border-radius: 8px; border: 2px solid #333; cursor: pointer; }
+    
+    .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .btn-theme { background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer; }
+
+    input[type="text"] {
+      width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff;
+      font-size: 14px; border-radius: 10px; box-sizing: border-box; margin-bottom: 10px; text-align: center;
+    }
+  </style>
 </head>
 <body>
+  <h2>💡 Universal Control Center</h2>
 
-    <h1>Télécommande PC</h1>
+  <div class="card">
+    <h3>🎯 Zone LED active</h3>
+    <div class="zone-grid">
+      <button id="zone-chambre" class="btn-zone" onclick="selectZone('chambre')">🛏️ Chambre</button>
+      <button id="zone-bureau" class="btn-zone" onclick="selectZone('bureau')">🖥️ Bureau</button>
+      <button id="zone-meuble" class="btn-zone" onclick="selectZone('meuble')">🛋️ Meuble</button>
+      <button id="zone-arme" class="btn-zone" onclick="selectZone('arme')">⚔️ Étage Arme</button>
+      <button id="zone-plante" class="btn-zone" onclick="selectZone('plante')">🪴 Étage Plante</button>
+      <button id="zone-jeux" class="btn-zone" onclick="selectZone('jeux')">🎮 Étage Jeux</button>
+    </div>
+    <button id="zone-all" class="btn-zone" style="width: 100%; margin-top: 4px;" onclick="selectZone('all')">🌐 TOUTES LES ZONES</button>
+    
+    <div id="status">Sélectionnez une zone pour démarrer</div>
+    <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
+  </div>
 
-    <!-- Remplacez cette URL par votre lien Ngrok actuel -->
-    <script>
-        const NGROK_URL = "https://votre-adresse.ngrok-free.app";
+  <div class="card">
+    <div class="row">
+      <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
+      <button class="btn btn-off" onclick="sendPower(false)">ÉTEINDRE</button>
+    </div>
+  </div>
 
-        async function envoyerCommande(endpoint) {
-            const statusDiv = document.getElementById("status");
-            statusDiv.innerText = "Envoi de la commande...";
-            
-            try {
-                const response = await fetch(`${NGROK_URL}/${endpoint}`, {
-                    method: "POST"
-                });
-                const data = await response.json();
-                statusDiv.innerText = data.message || "Commande exécutée !";
-            } catch (error) {
-                statusDiv.innerText = "Erreur de connexion au serveur.";
-                console.error(error);
-            }
+  <div class="card">
+    <h3>🖥️ Contrôle Ordinateur</h3>
+    <input type="text" id="pc-ip" value="https://gnarly-ecosphere-cornbread.ngrok-free.dev" placeholder="URL Ngrok du PC">
+    <button class="btn btn-pc" onclick="shutdownPC()">🔴 Éteindre le PC à distance</button>
+  </div>
+
+  <div class="card">
+    <h3>🎭 Thèmes & Ambiances</h3>
+    <div class="theme-grid">
+      <button class="btn-theme" style="border-left: 4px solid #7901fe;" onclick="applyPresetTheme('gaming')">🎮 Gaming</button>
+      <button class="btn-theme" style="border-left: 4px solid #38bdf8;" onclick="applyPresetTheme('travail')">💼 Travail</button>
+      <button class="btn-theme" style="border-left: 4px solid #f97316;" onclick="applyPresetTheme('sommeil')">🌙 Sommeil</button>
+      <button class="btn-theme" style="border-left: 4px solid #2ec4b6;" onclick="sendAnimTheme(0x87, 0x80)">🌈 Rainbow</button>
+      <button class="btn-theme" style="border-left: 4px solid #e71d36; grid-column: span 2;" onclick="sendAnimTheme(0x88, 0x87)">⚡ Flash Mode</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎨 Couleurs Principales</h3>
+    <div class="color-grid">
+      <div class="color-btn" style="background: #ff0000;" onclick="sendColor(255, 0, 0)"></div>
+      <div class="color-btn" style="background: #00ff00;" onclick="sendColor(0, 255, 0)"></div>
+      <div class="color-btn" style="background: #0000ff;" onclick="sendColor(0, 0, 255)"></div>
+      <div class="color-btn" style="background: #ffffff;" onclick="sendColor(255, 255, 255)"></div>
+      <div class="color-btn" style="background: #ffff00;" onclick="sendColor(255, 255, 0)"></div>
+      <div class="color-btn" style="background: #00ffff;" onclick="sendColor(0, 255, 255)"></div>
+      <div class="color-btn" style="background: #ff00ff;" onclick="sendColor(255, 0, 255)"></div>
+      <div class="color-btn" style="background: #ff7f00;" onclick="sendColor(255, 127, 0)"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>☀️ Luminosité LED</h3>
+    <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
+  </div>
+
+  <script>
+    const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
+    const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
+
+    let savedDevices = {};
+    let savedCharacteristics = {};
+    let deviceTypes = {};
+    
+    ALL_ZONES.forEach(z => {
+      savedDevices[z] = null;
+      savedCharacteristics[z] = null;
+      deviceTypes[z] = 'unknown';
+    });
+    
+    let currentZone = null;
+    let lastBrightnessTime = 0;
+
+    const status = document.getElementById('status');
+    const forgetBtn = document.getElementById('forget-btn');
+
+    const ALL_SERVICES = [
+      '0000ffd0-0000-1000-8000-00805f9b34fb',
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000ff00-0000-1000-8000-00805f9b34fb',
+      '0000ae01-0000-1000-8000-00805f9b34fb'
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const ipInput = document.getElementById('pc-ip');
+      const savedIp = localStorage.getItem('pc_ip');
+      if (ipInput) {
+        ipInput.value = savedIp || DEFAULT_IP;
+      }
+    });
+
+    function cleanUrl(inputUrl) {
+      let url = inputUrl.trim();
+      if (url.endsWith('/')) url = url.slice(0, -1);
+      if (!url.startsWith('http')) url = 'https://' + url;
+      return url;
+    }
+
+    async function shutdownPC() {
+      const ipInput = document.getElementById('pc-ip');
+      const url = cleanUrl(ipInput ? ipInput.value : DEFAULT_IP);
+      localStorage.setItem('pc_ip', url);
+
+      if (confirm("Éteindre le PC à distance ?")) {
+        try {
+          await fetch(url + '/eteindre', { 
+            method: 'POST',
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+          });
+          alert("Ordre d'extinction envoyé !");
+        } catch (error) {
+          console.error(error);
+          alert("Impossible de joindre le PC.");
         }
-    </script>
+      }
+    }
 
-    <button class="btn btn-unlock" onclick="envoyerCommande('unlock')">Déverrouiller</button>
-    <button class="btn btn-shutdown" onclick="envoyerCommande('eteindre')">Éteindre</button>
+    async function selectZone(zone) {
+      document.querySelectorAll('.btn-zone').forEach(btn => btn.classList.remove('active'));
+      const targetBtn = document.getElementById(`zone-${zone}`);
+      if(targetBtn) targetBtn.classList.add('active');
+      currentZone = zone;
 
-    <div id="status"></div>
+      if (zone === 'all') {
+        status.innerText = "🌐 Mode TOUT (Toutes les zones)";
+        status.style.color = "#ff9f1c";
+        forgetBtn.style.display = 'none';
+        return;
+      }
 
+      forgetBtn.style.display = 'block';
+
+      if (savedDevices[zone] && savedDevices[zone].gatt.connected && savedCharacteristics[zone]) {
+        status.innerText = `✅ Connecté : ${savedDevices[zone].name || zone.toUpperCase()} [${deviceTypes[zone].toUpperCase()}]`;
+        status.style.color = "#34c759";
+        return;
+      }
+
+      try {
+        if (!savedDevices[zone]) {
+          status.innerText = `🔍 Scan pour la zone ${zone.toUpperCase()}...`;
+          savedDevices[zone] = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ALL_SERVICES
+          });
+        }
+
+        status.innerText = `🔗 Connexion à la zone...`;
+        const server = await savedDevices[zone].gatt.connect();
+        const name = (savedDevices[zone].name || '').toUpperCase();
+        
+        if (name.includes('KS') || name.includes('KEEPSMILE') || name.includes('TRIONES') || name.includes('LEDBLE')) {
+          deviceTypes[zone] = 'keepsmile';
+        } else {
+          deviceTypes[zone] = 'lotuslamp';
+        }
+
+        const services = await server.getPrimaryServices();
+        savedCharacteristics[zone] = null;
+
+        for (const service of services) {
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const c of characteristics) {
+              if (c.properties.writeWithoutResponse || c.properties.write) {
+                savedCharacteristics[zone] = c;
+                break;
+              }
+            }
+          } catch(e) {}
+          if (savedCharacteristics[zone]) break;
+        }
+
+        if (savedCharacteristics[zone]) {
+          status.innerText = `✅ Connecté : ${name || zone.toUpperCase()} [${deviceTypes[zone].toUpperCase()}]`;
+          status.style.color = "#34c759";
+        } else {
+          throw new Error("Caractéristique introuvable");
+        }
+      } catch (e) {
+        savedDevices[zone] = null;
+        savedCharacteristics[zone] = null;
+        status.innerText = "❌ Échec de connexion";
+        status.style.color = "#e71d36";
+      }
+    }
+
+    async function ensureConnected(zone) {
+      if (!savedDevices[zone]) return false;
+      if (!savedDevices[zone].gatt.connected) {
+        try {
+          await savedDevices[zone].gatt.connect();
+        } catch(e) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    async function writeData(char, bytes) {
+      const payload = new Uint8Array(bytes);
+      try {
+        await char.writeValueWithoutResponse(payload);
+      } catch(e) {
+        try {
+          await char.writeValue(payload);
+        } catch(err) {}
+      }
+    }
+
+    function getPowerPayload(zone, state) {
+      return deviceTypes[zone] === 'keepsmile' 
+        ? [0xcc, state ? 0x23 : 0x24, 0x33] 
+        : [0x7e, 0x04, 0x04, state ? 0x01 : 0x00, 0x00, 0x00, 0x00, 0xef];
+    }
+
+    function getColorPayload(zone, r, g, b) {
+      return deviceTypes[zone] === 'keepsmile'
+        ? [0x56, r, g, b, 0x00, 0xf0, 0xaa]
+        : [0x7e, 0x07, 0x05, 0x03, r, g, b, 0x00, 0xef];
+    }
+
+    function getBrightnessPayload(zone, val) {
+      if (deviceTypes[zone] === 'keepsmile') {
+        const pct = Math.round((parseInt(val) / 100) * 255);
+        return [0xbb, pct, 0x00, 0x44];
+      } else {
+        return [0x7e, 0x04, 0x01, parseInt(val), 0x00, 0x00, 0x00, 0xef];
+      }
+    }
+
+    function getAnimPayload(zone, lotusMode, keepsmileMode) {
+      return deviceTypes[zone] === 'keepsmile'
+        ? [0xbb, keepsmileMode, 0x03, 0x44]
+        : [0x7e, 0x05, 0x03, lotusMode, 0x03, 0x00, 0x00, 0xef];
+    }
+
+    async function executeOnTargets(action) {
+      if (!currentZone) return alert("Sélectionnez d'abord une zone !");
+      const targets = currentZone === 'all' ? ALL_ZONES : [currentZone];
+
+      for (const zone of targets) {
+        if (savedCharacteristics[zone] && await ensureConnected(zone)) {
+          await action(zone);
+          await new Promise(r => setTimeout(r, 80));
+        }
+      }
+    }
+
+    function sendPower(state) {
+      executeOnTargets(async (zone) => {
+        await writeData(savedCharacteristics[zone], getPowerPayload(zone, state));
+      });
+    }
+
+    function sendColor(r, g, b) {
+      executeOnTargets(async (zone) => {
+        await writeData(savedCharacteristics[zone], getColorPayload(zone, r, g, b));
+      });
+    }
+
+    function sendAnimTheme(lotusMode, keepsmileMode) {
+      executeOnTargets(async (zone) => {
+        await writeData(savedCharacteristics[zone], getAnimPayload(zone, lotusMode, keepsmileMode));
+      });
+    }
+
+    function applyPresetTheme(type) {
+      if (type === 'gaming') sendColor(121, 1, 254);
+      else if (type === 'travail') sendColor(230, 245, 255);
+      else if (type === 'sommeil') sendColor(40, 5, 0);
+    }
+
+    function handleBrightnessSlider(val) {
+      const now = Date.now();
+      if (now - lastBrightnessTime > 60) {
+        lastBrightnessTime = now;
+        executeOnTargets(async (zone) => {
+          await writeData(savedCharacteristics[zone], getBrightnessPayload(zone, val));
+        });
+      }
+    }
+
+    function forgetCurrentZone() {
+      if (!currentZone || currentZone === 'all') return;
+      if (savedDevices[currentZone] && savedDevices[currentZone].gatt.connected) {
+        savedDevices[currentZone].gatt.disconnect();
+      }
+      savedDevices[currentZone] = null;
+      savedCharacteristics[currentZone] = null;
+      deviceTypes[currentZone] = 'unknown';
+      status.innerText = `🔄 Zone ${currentZone.toUpperCase()} réinitialisée. Cliquez dessus pour ré-appairer.`;
+      status.style.color = "#ff9f1c";
+    }
+  </script>
 </body>
 </html>
