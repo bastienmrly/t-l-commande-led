@@ -37,7 +37,6 @@
 <body>
   <h2>💡 Universal Control Center</h2>
 
-  <!-- ZONES LED -->
   <div class="card">
     <h3>🎯 Zone LED active</h3>
     <div class="zone-grid">
@@ -54,7 +53,6 @@
     <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
   </div>
 
-  <!-- ALLUMAGE LED -->
   <div class="card">
     <div class="row">
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
@@ -62,7 +60,6 @@
     </div>
   </div>
 
-  <!-- CONTRÔLE DU PC -->
   <div class="card">
     <h3>🖥️ Contrôle Ordinateur</h3>
     <input type="text" id="pc-ip" value="https://gnarly-ecosphere-cornbread.ngrok-free.dev" placeholder="URL Ngrok du PC">
@@ -70,7 +67,6 @@
     <button class="btn btn-pc-on" onclick="allumerPC()">🟢 Allumer le PC (WoL)</button>
   </div>
 
-  <!-- THÈMES -->
   <div class="card">
     <h3>🎭 Thèmes & Ambiances</h3>
     <div class="theme-grid">
@@ -82,7 +78,6 @@
     </div>
   </div>
 
-  <!-- COULEURS -->
   <div class="card">
     <h3>🎨 Couleurs Principales</h3>
     <div class="color-grid">
@@ -97,7 +92,6 @@
     </div>
   </div>
 
-  <!-- LUMINOSITÉ -->
   <div class="card">
     <h3>☀️ Luminosité LED</h3>
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
@@ -107,7 +101,7 @@
     const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
     
-    // ⚠️ Remplacez par votre adresse MAC exacte
+    // ⚠️ Modifiez cette valeur avec votre vraie adresse MAC
     const PC_MAC_ADDRESS = "04-7C-16-C8-39-00"; 
 
     let savedDevices = {};
@@ -172,18 +166,20 @@
       const cleanMac = PC_MAC_ADDRESS.trim().replace(/-/g, ':');
 
       if (cleanMac === "00:1A:2B:3C:4D:5E" || cleanMac === "") {
-        alert("⚠️ Modifiez la variable PC_MAC_ADDRESS dans le code avec la vraie adresse MAC de votre PC.");
+        alert("⚠️ Indiquez l'adresse MAC réelle de votre PC dans la variable PC_MAC_ADDRESS du code.");
         return;
       }
 
       try {
         const targetUrl = `https://api.wakeonlan.net/wake?mac=${cleanMac}`;
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+        const response = await fetch(proxyUrl);
 
         if (response.ok) {
-          alert("🟢 Signal d'allumage envoyé avec succès !");
+          alert("🟢 Signal d'allumage (Magic Packet) envoyé avec succès !");
         } else {
-          alert("⚠️ Signal envoyé, réponse du serveur : " + response.status);
+          alert("⚠️ Signal transmis mais statut serveur : " + response.status);
         }
       } catch (error) {
         console.error(error);
