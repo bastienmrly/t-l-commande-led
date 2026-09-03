@@ -37,6 +37,7 @@
 <body>
   <h2>💡 Universal Control Center</h2>
 
+  <!-- ZONES LED -->
   <div class="card">
     <h3>🎯 Zone LED active</h3>
     <div class="zone-grid">
@@ -53,6 +54,7 @@
     <button id="forget-btn" class="btn-forget" onclick="forgetCurrentZone()">🔄 Dissocier / Re-scanner cette zone</button>
   </div>
 
+  <!-- ALLUMAGE LED -->
   <div class="card">
     <div class="row">
       <button class="btn btn-on" onclick="sendPower(true)">ALLUMER</button>
@@ -60,6 +62,7 @@
     </div>
   </div>
 
+  <!-- CONTRÔLE DU PC -->
   <div class="card">
     <h3>🖥️ Contrôle Ordinateur</h3>
     <input type="text" id="pc-ip" value="https://gnarly-ecosphere-cornbread.ngrok-free.dev" placeholder="URL Ngrok du PC">
@@ -67,10 +70,11 @@
     <button class="btn btn-pc-on" onclick="allumerPC()">🟢 Allumer le PC (WoL)</button>
   </div>
 
+  <!-- THÈMES -->
   <div class="card">
     <h3>🎭 Thèmes & Ambiances</h3>
     <div class="theme-grid">
-      <button class="btn-theme" style="border-left: 4px solid #a855f7;" onclick="applyPresetTheme('gaming')">🎮 Gaming</button>
+      <button class="btn-theme" style="border-left: 4px solid #7901fe;" onclick="applyPresetTheme('gaming')">🎮 Gaming</button>
       <button class="btn-theme" style="border-left: 4px solid #38bdf8;" onclick="applyPresetTheme('travail')">💼 Travail</button>
       <button class="btn-theme" style="border-left: 4px solid #f97316;" onclick="applyPresetTheme('sommeil')">🌙 Sommeil</button>
       <button class="btn-theme" style="border-left: 4px solid #2ec4b6;" onclick="sendAnimTheme(0x87, 0x80)">🌈 Rainbow</button>
@@ -78,6 +82,7 @@
     </div>
   </div>
 
+  <!-- COULEURS -->
   <div class="card">
     <h3>🎨 Couleurs Principales</h3>
     <div class="color-grid">
@@ -92,6 +97,7 @@
     </div>
   </div>
 
+  <!-- LUMINOSITÉ -->
   <div class="card">
     <h3>☀️ Luminosité LED</h3>
     <input type="range" id="brightness" min="1" max="100" value="100" style="width:100%" oninput="handleBrightnessSlider(this.value)">
@@ -101,8 +107,8 @@
     const DEFAULT_IP = "https://gnarly-ecosphere-cornbread.ngrok-free.dev"; 
     const ALL_ZONES = ['chambre', 'bureau', 'meuble', 'arme', 'plante', 'jeux'];
     
-    // ⚠️ REMPLACEZ CETTE VALEUR PAR L'ADRESSE MAC DE VOTRE PC (Trouvée dans Fing ou l'application Deco)
-    const PC_MAC_ADDRESS = " 04:7C:16:C8:39:00"; 
+    // ⚠️ Remplacez par votre adresse MAC exacte
+    const PC_MAC_ADDRESS = "00:1A:2B:3C:4D:5E"; 
 
     let savedDevices = {};
     let savedCharacteristics = {};
@@ -163,7 +169,6 @@
     }
 
     async function allumerPC() {
-      // Nettoyage automatique du format de l'adresse MAC
       const cleanMac = PC_MAC_ADDRESS.trim().replace(/-/g, ':');
 
       try {
@@ -333,7 +338,7 @@
     }
 
     function applyPresetTheme(type) {
-      if (type === 'gaming') sendColor(147, 51, 234);
+      if (type === 'gaming') sendColor(121, 1, 254); // Couleur violette exacte (R:121, G:1, B:254)
       else if (type === 'travail') sendColor(230, 245, 255);
       else if (type === 'sommeil') sendColor(40, 5, 0);
     }
